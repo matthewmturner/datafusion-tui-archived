@@ -6,3 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+crossterm = { version = "0.23", features = [ "serde" ] }
+tui = { version = "0.17", default-features = false, features = ['crossterm', 'serde'] }
+tui-logger = { git = "https://github.com/gin66/tui-logger", rev = "7d43c709023970655acde3d10caf8a4b4944097d" }
+tokio = { version = "1", features = ["full"] }
+unicode-width = "0.1.9"
