@@ -1,9 +1,8 @@
 pub mod app;
 
-use crossterm::cursor::{MoveToNextLine, RestorePosition};
 use crossterm::event::{self, Event, KeyCode};
-use crossterm::ExecutableCommand;
-use std::io::{self, stdout};
+use std::cmp;
+use std::io;
 use tui::{backend::Backend, Terminal};
 
 use crate::app::ui;
@@ -21,6 +20,12 @@ pub struct App {
     input_mode: InputMode,
     /// History of recorded messages
     messages: Vec<String>,
+    /// Current line in editor
+    editor_line: u16,
+    /// Current column in editor
+    editor_column: u16,
+    /// SQL statement terminated with ';'
+    sql_terminated: bool,
 }
 
 impl Default for App {
@@ -29,13 +34,16 @@ impl Default for App {
             input: String::new(),
             input_mode: InputMode::Normal,
             messages: Vec::new(),
+            editor_line: 1,
+            editor_column: 1,
+            sql_terminated: false,
         }
     }
 }
 
 pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     loop {
-        terminal.draw(|f| ui::start_ui(f, &app))?;
+        terminal.draw(|f| ui::generate_ui(f, &app))?;
 
         if let Event::Key(key) = event::read()? {
             match app.input_mode {
@@ -49,15 +57,35 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Resu
                     _ => {}
                 },
                 InputMode::Editing => match key.code {
-                    KeyCode::Enter => {
-                        stdout().execute(MoveToNextLine { 0: 1 })?;
-                        // app.messages.push(app.input.drain(..).collect());
-                    }
+                    KeyCode::Enter => match app.sql_terminated {
+                        false => {
+                            app.input.push('\n');
+                            app.editor_line += 1;
+                            app.editor_column = 1;
+                        }
+                        true => {
+                            app.messages.push(app.input.drain(..).collect());
+                            app.editor_line = 1;
+                            app.editor_column = 1;
+                        }
+                    },
                     KeyCode::Char(c) => {
-                        app.input.push(c);
+                        match c {
+                            ';' => {
+                                app.input.push(c);
+                                app.sql_terminated = true;
+                            }
+                            _ => {
+                                app.input.push(c);
+                            }
+                        }
+                        app.editor_column += 1;
                     }
                     KeyCode::Backspace => {
+                        // TODO: Handle backspace with newlines
                         app.input.pop();
+                        let column = cmp::max(1, app.editor_column - 1);
+                        app.editor_column = column;
                     }
                     KeyCode::Esc => {
                         app.input_mode = InputMode::Normal;

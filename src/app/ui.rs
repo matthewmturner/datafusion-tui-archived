@@ -6,11 +6,10 @@ use tui::{
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
-use unicode_width::UnicodeWidthStr;
 
 use crate::{App, InputMode};
 
-pub fn start_ui<B: Backend>(f: &mut Frame<B>, app: &App) {
+pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(2)
@@ -67,9 +66,10 @@ pub fn start_ui<B: Backend>(f: &mut Frame<B>, app: &App) {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[1].x + app.input.width() as u16 + 1,
+                chunks[1].x + app.editor_column,
+                // chunks[1].x + app.input.width() as u16 + 1,
                 // Move one line down, from the border to the input line
-                chunks[1].y + 1,
+                chunks[1].y + app.editor_line,
             )
         }
     }
