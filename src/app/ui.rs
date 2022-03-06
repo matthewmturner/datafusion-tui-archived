@@ -9,7 +9,7 @@ use tui::{
 
 use crate::{App, InputMode};
 
-pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &App) {
+pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(2)
@@ -55,7 +55,7 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &App) {
             InputMode::Normal => Style::default(),
             InputMode::Editing => Style::default().fg(Color::Yellow),
         })
-        .block(Block::default().borders(Borders::ALL).title("Input"));
+        .block(Block::default().borders(Borders::ALL).title("SQL Editor"));
     f.render_widget(input, chunks[1]);
     match app.input_mode {
         InputMode::Normal =>
@@ -66,16 +66,16 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &App) {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[1].x + app.editor_column,
+                chunks[1].x + app.editor.current_column,
                 // chunks[1].x + app.input.width() as u16 + 1,
                 // Move one line down, from the border to the input line
-                chunks[1].y + app.editor_line,
+                chunks[1].y + app.editor.current_row,
             )
         }
     }
 
     let messages: Vec<ListItem> = app
-        .messages
+        .sql_history
         .iter()
         .enumerate()
         .map(|(i, m)| {
