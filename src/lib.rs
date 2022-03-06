@@ -1,7 +1,9 @@
 pub mod app;
 
+use crossterm::cursor::{MoveToNextLine, RestorePosition};
 use crossterm::event::{self, Event, KeyCode};
-use std::io;
+use crossterm::ExecutableCommand;
+use std::io::{self, stdout};
 use tui::{backend::Backend, Terminal};
 
 use crate::app::ui;
@@ -48,7 +50,8 @@ pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Resu
                 },
                 InputMode::Editing => match key.code {
                     KeyCode::Enter => {
-                        app.messages.push(app.input.drain(..).collect());
+                        stdout().execute(MoveToNextLine { 0: 1 })?;
+                        // app.messages.push(app.input.drain(..).collect());
                     }
                     KeyCode::Char(c) => {
                         app.input.push(c);

@@ -17,7 +17,7 @@ pub fn start_ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .constraints(
             [
                 Constraint::Length(1),
-                Constraint::Length(3),
+                Constraint::Length(30),
                 Constraint::Min(1),
             ]
             .as_ref(),
