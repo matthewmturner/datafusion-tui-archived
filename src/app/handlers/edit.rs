@@ -21,22 +21,9 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{App, InputMode};
 
-pub fn edit_mode_handler(app: &mut App, key: KeyEvent) {
+pub async fn edit_mode_handler(app: &mut App, key: KeyEvent) {
     match key.code {
-        KeyCode::Enter => match app.editor.sql_terminated {
-            false => {
-                app.input.push('\n');
-                app.editor.current_row += 1;
-                app.editor.line_lengths.push(app.editor.current_column);
-                app.editor.current_column = 1;
-            }
-            true => {
-                app.sql_history.push(app.input.drain(..).collect());
-                app.editor.current_row = 1;
-                app.editor.current_column = 1;
-                app.editor.sql_terminated = false
-            }
-        },
+        KeyCode::Enter => enter_handler(app).await,
         KeyCode::Char(c) => {
             match c {
                 ';' => {
@@ -66,9 +53,43 @@ pub fn edit_mode_handler(app: &mut App, key: KeyEvent) {
                 }
             }
         }
+        KeyCode::Up => {
+            let sql = app.sql_history.last();
+            match sql {
+                Some(sql) => app.input = sql.clone(),
+                None => {}
+            }
+        }
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
         }
         _ => {}
+    }
+}
+
+async fn enter_handler(app: &mut App) {
+    match app.editor.sql_terminated {
+        false => {
+            app.input.push('\n');
+            app.editor.current_row += 1;
+            app.editor.line_lengths.push(app.editor.current_column);
+            app.editor.current_column = 1;
+        }
+        true => {
+            let sql: String = app.input.drain(..).collect();
+            app.sql_history.push(sql.clone());
+            app.editor.current_row = 1;
+            app.editor.current_column = 1;
+            app.editor.sql_terminated = false;
+            // TODO: Remove unwrap and add result / action
+            let df = app.context.sql(&sql).await;
+            match df {
+                Ok(df) => {}
+                Err(e) => {
+                    let err_msg = format!("{}", e);
+                    app.sql_history.push(err_msg)
+                }
+            }
+        }
     }
 }

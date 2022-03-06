@@ -25,7 +25,8 @@ use tui::{backend::CrosstermBackend, Terminal};
 
 use datafusion_tui::{run_app, App};
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -35,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // create app and run it
     let mut app = App::default();
-    let res = run_app(&mut terminal, &mut app);
+    let res = run_app(&mut terminal, &mut app).await;
 
     // restore terminal
     disable_raw_mode()?;

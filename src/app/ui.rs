@@ -73,6 +73,7 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             InputMode::Editing => Style::default().fg(Color::Yellow),
         })
         .block(Block::default().borders(Borders::ALL).title("SQL Editor"));
+    // .scroll((1, 1));
     f.render_widget(input, chunks[1]);
     match app.input_mode {
         InputMode::Normal =>

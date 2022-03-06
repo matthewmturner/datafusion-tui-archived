@@ -30,7 +30,7 @@ pub enum KeyEventAction {
     Exit,
 }
 
-pub fn key_event_handler(app: &mut App) -> io::Result<KeyEventAction> {
+pub async fn key_event_handler(app: &mut App) -> io::Result<KeyEventAction> {
     if let Event::Key(key) = event::read()? {
         match app.input_mode {
             InputMode::Normal => {
@@ -44,7 +44,7 @@ pub fn key_event_handler(app: &mut App) -> io::Result<KeyEventAction> {
                 }
             }
             InputMode::Editing => {
-                edit::edit_mode_handler(app, key);
+                edit::edit_mode_handler(app, key).await;
                 Ok(KeyEventAction::Continue)
             }
         }

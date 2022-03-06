@@ -39,6 +39,8 @@ struct Editor {
     line_lengths: Vec<u16>,
     /// Flag if SQL statement was terminated with ';'
     sql_terminated: bool,
+    /// Rows to scroll the editor
+    scroll: u16,
 }
 impl Default for Editor {
     fn default() -> Editor {
@@ -49,6 +51,7 @@ impl Default for Editor {
             current_column: 1,
             line_lengths,
             sql_terminated: false,
+            scroll: 0,
         }
     }
 }
@@ -63,26 +66,30 @@ pub struct App {
     sql_history: Vec<String>,
     /// Editor
     editor: Editor,
+    /// DataFusion `ExecutionContext`
+    context: ExecutionContext,
 }
 
 impl Default for App {
     fn default() -> App {
-        let mut execution_config = ExecutionConfig::new().with_information_schema(true);
+        let config = ExecutionConfig::new().with_information_schema(true);
+        let ctx = ExecutionContext::with_config(config);
 
         App {
             input: String::new(),
             input_mode: InputMode::Normal,
             sql_history: Vec::new(),
             editor: Editor::default(),
+            context: ctx,
         }
     }
 }
 
-pub fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<()> {
+pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<()> {
     loop {
         terminal.draw(|f| ui::generate_ui(f, app))?;
 
-        let result = key_event_handler(app);
+        let result = key_event_handler(app).await;
         match result {
             Ok(KeyEventAction::Continue) => {}
             Ok(KeyEventAction::Exit) => return Ok(()),
