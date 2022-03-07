@@ -67,14 +67,14 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let help_message = Paragraph::new(text);
     f.render_widget(help_message, chunks[0]);
 
-    let input = Paragraph::new(app.input.as_ref())
+    let editor_input = Paragraph::new(app.editor.input.combine_lines())
         .style(match app.input_mode {
             InputMode::Normal => Style::default(),
             InputMode::Editing => Style::default().fg(Color::Yellow),
         })
         .block(Block::default().borders(Borders::ALL).title("SQL Editor"));
     // .scroll((1, 1));
-    f.render_widget(input, chunks[1]);
+    f.render_widget(editor_input, chunks[1]);
     match app.input_mode {
         InputMode::Normal =>
             // Hide the cursor. `Frame` does this by default, so we don't need to do anything here
@@ -84,10 +84,9 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[1].x + app.editor.current_column,
-                // chunks[1].x + app.input.width() as u16 + 1,
+                chunks[1].x + app.editor.get_cursor_column() + 1,
                 // Move one line down, from the border to the input line
-                chunks[1].y + app.editor.current_row,
+                chunks[1].y + app.editor.get_cursor_row() + 1,
             )
         }
     }
@@ -102,6 +101,6 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         })
         .collect();
     let messages =
-        List::new(messages).block(Block::default().borders(Borders::ALL).title("Messages"));
+        List::new(messages).block(Block::default().borders(Borders::ALL).title("Query Output"));
     f.render_widget(messages, chunks[2]);
 }

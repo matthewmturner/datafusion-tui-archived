@@ -24,42 +24,23 @@ use crate::{App, InputMode};
 pub async fn edit_mode_handler(app: &mut App, key: KeyEvent) {
     match key.code {
         KeyCode::Enter => enter_handler(app).await,
-        KeyCode::Char(c) => {
-            match c {
-                ';' => {
-                    app.input.push(c);
-                    app.editor.sql_terminated = true;
-                }
-                _ => {
-                    app.input.push(c);
-                }
+        KeyCode::Char(c) => match c {
+            ';' => {
+                app.editor.input.append_char(c);
+                app.editor.sql_terminated = true;
             }
-            app.editor.current_column += 1;
-        }
+            _ => {
+                app.editor.input.append_char(c);
+            }
+        },
+        KeyCode::Tab => app.editor.input.tab(),
         KeyCode::Backspace => {
-            // TODO: Handle backspace with multiple newlines and blanks
-            let last = app.input.pop();
-            if let Some(char) = last {
-                match char {
-                    '\n' => {
-                        let previous_row = app.editor.current_row - 1;
-                        app.editor.current_column = app.editor.line_lengths[previous_row as usize];
-                        app.editor.current_row -= 1;
-                    }
-                    _ => {
-                        let column = cmp::max(1, app.editor.current_column - 1);
-                        app.editor.current_column = column;
-                    }
-                }
-            }
+            app.editor.input.backspace();
         }
-        KeyCode::Up => {
-            let sql = app.sql_history.last();
-            match sql {
-                Some(sql) => app.input = sql.clone(),
-                None => {}
-            }
-        }
+        // KeyCode::Up => app.editor.cursor_row = cmp::max(app.editor.cursor_row - 1, 1),
+        // KeyCode::Down => app.editor.cursor_row = cmp::max(app.editor.cursor_row + 1, 1),
+        // KeyCode::Left => app.editor.cursor_column = cmp::max(app.editor.cursor_column - 1, 1),
+        // KeyCode::Right => app.editor.cursor_column = cmp::max(app.editor.cursor_column + 1, 1),
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
         }
@@ -70,16 +51,12 @@ pub async fn edit_mode_handler(app: &mut App, key: KeyEvent) {
 async fn enter_handler(app: &mut App) {
     match app.editor.sql_terminated {
         false => {
-            app.input.push('\n');
-            app.editor.current_row += 1;
-            app.editor.line_lengths.push(app.editor.current_column);
-            app.editor.current_column = 1;
+            app.editor.input.append_char('\n');
         }
         true => {
-            let sql: String = app.input.drain(..).collect();
+            let sql: String = app.editor.input.combine_lines();
             app.sql_history.push(sql.clone());
-            app.editor.current_row = 1;
-            app.editor.current_column = 1;
+            app.editor.input.clear();
             app.editor.sql_terminated = false;
             // TODO: Remove unwrap and add result / action
             let df = app.context.sql(&sql).await;
