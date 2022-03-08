@@ -15,6 +15,8 @@
 // specific language governing permissions and limitations
 // under the License.
 
+// Tabs: Context, Catalog, Logs, Sql Editors, Query History
+
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,

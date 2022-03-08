@@ -15,7 +15,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
-pub mod datafusion;
-pub mod handlers;
-pub mod state;
-pub mod ui;
+use arrow::record_batch::RecordBatch;
+use arrow::util::display::array_value_to_string;
+use tui::{
+    style::{Color, Style},
+    widgets::{Cell, Row, Table, TableState},
+};
+
+pub fn create_table(batches: &[RecordBatch]) {
+    let schema = batches[0].schema();
+    let header_cells = Vec::new();
+    for field in schema.fields() {
+        let cell = Cell::from(field.name().as_str()).style(Style::default().fg(Color::Red));
+        header_cells.push(cell)
+    }
+    let header = Row::new(header_cells).height(1).bottom_margin(1);
+}

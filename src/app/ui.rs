@@ -91,16 +91,17 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         }
     }
 
-    let messages: Vec<ListItem> = app
-        .sql_history
-        .iter()
-        .enumerate()
-        .map(|(i, m)| {
-            let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
-            ListItem::new(content)
-        })
-        .collect();
-    let messages =
-        List::new(messages).block(Block::default().borders(Borders::ALL).title("Query Output"));
-    f.render_widget(messages, chunks[2]);
+    // let messages: Vec<ListItem> = app
+    //     .sql_history
+    //     .iter()
+    //     .enumerate()
+    //     .map(|(i, m)| {
+    //         let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
+    //         ListItem::new(content)
+    //     })
+    //     .collect();
+    // let messages =
+    //     List::new(messages).block(Block::default().borders(Borders::ALL).title("Query Output"));
+    let p = Paragraph::new(app.query_results.pretty_format());
+    f.render_widget(p, chunks[2]);
 }

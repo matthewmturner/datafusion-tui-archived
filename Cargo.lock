@@ -419,6 +419,7 @@ dependencies = [
 name = "datafusion-tui"
 version = "0.1.0"
 dependencies = [
+ "arrow",
  "clap",
  "crossterm 0.23.0",
  "datafusion",

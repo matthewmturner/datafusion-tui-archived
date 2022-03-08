@@ -23,6 +23,7 @@ use std::io;
 use datafusion::prelude::*;
 use tui::{backend::Backend, Terminal};
 
+use crate::app::datafusion::context::QueryResults;
 use crate::app::handlers::{key_event_handler, KeyEventAction};
 use crate::app::ui;
 use crate::editor::Editor;
@@ -44,6 +45,8 @@ pub struct App {
     editor: Editor,
     /// DataFusion `ExecutionContext`
     context: ExecutionContext,
+    /// Results from DataFusion query
+    query_results: QueryResults,
 }
 
 impl Default for App {
@@ -57,6 +60,7 @@ impl Default for App {
             sql_history: Vec::new(),
             editor: Editor::default(),
             context: ctx,
+            query_results: QueryResults::default(),
         }
     }
 }

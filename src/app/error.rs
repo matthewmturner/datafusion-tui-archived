@@ -15,7 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-pub mod datafusion;
-pub mod handlers;
-pub mod state;
-pub mod ui;
+pub enum DftError {
+    ExternalError(Box<dyn Error + Send + Sync>),
+    IoError(String),
+}

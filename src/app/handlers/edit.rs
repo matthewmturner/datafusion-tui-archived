@@ -17,6 +17,7 @@
 
 use std::cmp;
 
+use arrow::util::pretty::pretty_format_batches;
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{App, InputMode};
@@ -61,7 +62,9 @@ async fn enter_handler(app: &mut App) {
             // TODO: Remove unwrap and add result / action
             let df = app.context.sql(&sql).await;
             match df {
-                Ok(df) => {}
+                Ok(df) => {
+                    app.query_results.results = Some(df);
+                }
                 Err(e) => {
                     let err_msg = format!("{}", e);
                     app.sql_history.push(err_msg)
