@@ -34,7 +34,7 @@ enum InputMode {
 }
 
 /// App holds the state of the application
-pub struct App {
+pub struct App<'a> {
     // /// Current value of the input box
     // input: String,
     /// Current input mode
@@ -46,11 +46,27 @@ pub struct App {
     /// DataFusion `ExecutionContext`
     context: ExecutionContext,
     /// Results from DataFusion query
-    query_results: QueryResults,
+    query_results: Option<QueryResults<'a>>,
 }
 
-impl Default for App {
-    fn default() -> App {
+// impl Default for App {
+//     fn default() -> App {
+//         let config = ExecutionConfig::new().with_information_schema(true);
+//         let ctx = ExecutionContext::with_config(config);
+
+//         App {
+//             // input: String::new(),
+//             input_mode: InputMode::Normal,
+//             sql_history: Vec::new(),
+//             editor: Editor::default(),
+//             context: ctx,
+//             query_results: QueryResults::default(),
+//         }
+//     }
+// }
+
+impl<'a> App<'a> {
+    fn new() -> App<'a> {
         let config = ExecutionConfig::new().with_information_schema(true);
         let ctx = ExecutionContext::with_config(config);
 
@@ -60,12 +76,12 @@ impl Default for App {
             sql_history: Vec::new(),
             editor: Editor::default(),
             context: ctx,
-            query_results: QueryResults::default(),
+            query_results: None,
         }
     }
 }
 
-pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<()> {
+pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App<'_>) -> io::Result<()> {
     loop {
         terminal.draw(|f| ui::generate_ui(f, app))?;
 

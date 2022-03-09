@@ -17,12 +17,21 @@
 
 //! Context (remote or local)
 
-use arrow::util::pretty::pretty_format_batches;
+use arrow::record_batch::RecordBatch;
+use arrow::util::display::array_value_to_string;
 use datafusion::dataframe::DataFrame;
 use datafusion::error::DataFusionError;
 use datafusion::execution::context::{ExecutionConfig, ExecutionContext};
 use std::fmt::Display;
 use std::sync::Arc;
+use tui::layout::Constraint;
+use tui::widgets::TableState;
+use tui::{
+    style::{Color, Modifier, Style},
+    widgets::{Block, Borders, Cell, Row, Table},
+};
+
+use super::display::QueryResultTable;
 
 /// The CLI supports using a local DataFusion context or a distributed BallistaContext
 // pub enum Context {
@@ -52,20 +61,43 @@ use std::sync::Arc;
 //     }
 // }
 
-pub struct QueryResults {
-    pub results: Option<Arc<dyn DataFrame>>,
+pub struct QueryResults<'a> {
+    pub batches: Vec<RecordBatch>,
+    pub table: QueryResultTable<'a>,
 }
 
-impl Default for QueryResults {
-    fn default() -> QueryResults {
-        QueryResults { results: None }
+impl<'a> QueryResults<'a> {
+    pub fn new(batches: Vec<RecordBatch>) -> QueryResults<'a> {
+        let table = QueryResults::create_table(&batches);
+        QueryResults { batches, table }
     }
-}
 
-impl QueryResults {
-    pub async fn pretty_format(&self) -> impl Display {
-        let batches = self.results.clone().unwrap().collect().await.unwrap();
-        pretty_format_batches(&batches).unwrap()
+    fn create_table(batches: &[RecordBatch]) -> QueryResultTable {
+        let schema = batches[0].schema();
+        let mut header_cells = Vec::new();
+        let mut columns = Vec::new();
+        for field in schema.fields() {
+            let cell = Cell::from(field.name().to_owned()).style(Style::default().fg(Color::Red));
+            header_cells.push(cell);
+            columns.push(Constraint::Length(10))
+        }
+        let header = Row::new(header_cells)
+            .height(1)
+            .bottom_margin(1)
+            .style(Style::default().add_modifier(Modifier::BOLD));
+
+        let mut rows = Vec::new();
+        for batch in batches {
+            for row in 0..batch.num_rows() {
+                let mut cells = Vec::new();
+                for col in 0..batch.num_columns() {
+                    let column = batch.column(col);
+                    cells.push(Cell::from(array_value_to_string(column, row).unwrap()))
+                }
+                rows.push(Row::new(cells).height(1).bottom_margin(1))
+            }
+        }
+        QueryResultTable::new(TableState::default(), header, rows, columns)
     }
 }
 

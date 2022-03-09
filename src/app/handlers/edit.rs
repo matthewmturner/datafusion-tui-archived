@@ -17,12 +17,12 @@
 
 use std::cmp;
 
-use arrow::util::pretty::pretty_format_batches;
 use crossterm::event::{KeyCode, KeyEvent};
 
+use crate::app::datafusion::context::QueryResults;
 use crate::{App, InputMode};
 
-pub async fn edit_mode_handler(app: &mut App, key: KeyEvent) {
+pub async fn edit_mode_handler(app: &mut App<'_>, key: KeyEvent) {
     match key.code {
         KeyCode::Enter => enter_handler(app).await,
         KeyCode::Char(c) => match c {
@@ -49,7 +49,7 @@ pub async fn edit_mode_handler(app: &mut App, key: KeyEvent) {
     }
 }
 
-async fn enter_handler(app: &mut App) {
+async fn enter_handler(app: &mut App<'_>) {
     match app.editor.sql_terminated {
         false => {
             app.editor.input.append_char('\n');
@@ -63,7 +63,7 @@ async fn enter_handler(app: &mut App) {
             let df = app.context.sql(&sql).await;
             match df {
                 Ok(df) => {
-                    app.query_results.results = Some(df);
+                    app.query_results = Some(QueryResults::new(df.collect().await.unwrap()));
                 }
                 Err(e) => {
                     let err_msg = format!("{}", e);

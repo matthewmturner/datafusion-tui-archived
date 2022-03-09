@@ -91,17 +91,26 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         }
     }
 
-    // let messages: Vec<ListItem> = app
-    //     .sql_history
-    //     .iter()
-    //     .enumerate()
-    //     .map(|(i, m)| {
-    //         let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
-    //         ListItem::new(content)
-    //     })
-    //     .collect();
-    // let messages =
-    //     List::new(messages).block(Block::default().borders(Borders::ALL).title("Query Output"));
-    let p = Paragraph::new(app.query_results.pretty_format());
-    f.render_widget(p, chunks[2]);
+    let messages: Vec<ListItem> = app
+        .sql_history
+        .iter()
+        .enumerate()
+        .map(|(i, m)| {
+            let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
+            ListItem::new(content)
+        })
+        .collect();
+    let messages =
+        List::new(messages).block(Block::default().borders(Borders::ALL).title("Query Output"));
+    if let Some(batches) = &app.query_results.batches {
+        let query = app.sql_history.last().unwrap();
+        if query.starts_with("CREATE") {
+            f.render_widget(messages, chunks[2]);
+        } else {
+            let table = app.query_results.table.table;
+            f.render_stateful_widget(table, chunks[2], &mut app.query_results.state);
+        }
+    } else {
+        f.render_widget(messages, chunks[2]);
+    }
 }

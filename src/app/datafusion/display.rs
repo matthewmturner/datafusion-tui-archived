@@ -17,17 +17,40 @@
 
 use arrow::record_batch::RecordBatch;
 use arrow::util::display::array_value_to_string;
+use tui::widgets::TableState;
 use tui::{
-    style::{Color, Style},
-    widgets::{Cell, Row, Table, TableState},
+    layout::Constraint,
+    style::{Color, Modifier, Style},
+    widgets::{Block, Borders, Cell, Row, Table},
 };
 
-pub fn create_table(batches: &[RecordBatch]) {
-    let schema = batches[0].schema();
-    let header_cells = Vec::new();
-    for field in schema.fields() {
-        let cell = Cell::from(field.name().as_str()).style(Style::default().fg(Color::Red));
-        header_cells.push(cell)
+pub struct QueryResultTable<'a> {
+    pub state: TableState,
+    pub header: Row<'a>,
+    pub rows: Vec<Row<'a>>,
+    pub columns: Vec<Constraint>,
+    pub table: Table<'a>,
+}
+
+impl<'a> QueryResultTable<'a> {
+    pub fn new(
+        state: TableState,
+        header: Row<'a>,
+        rows: Vec<Row<'a>>,
+        columns: Vec<Constraint>,
+    ) -> QueryResultTable<'a> {
+        let table = Table::new(rows)
+            .header(header)
+            .block(Block::default().borders(Borders::ALL).title("Table"))
+            .highlight_style(Style::default().add_modifier(Modifier::REVERSED))
+            .highlight_symbol(">> ")
+            .widths(&columns);
+        QueryResultTable {
+            state,
+            header,
+            rows,
+            columns,
+            table,
+        }
     }
-    let header = Row::new(header_cells).height(1).bottom_margin(1);
 }
