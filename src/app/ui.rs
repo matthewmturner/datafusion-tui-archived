@@ -25,7 +25,7 @@ use tui::{
     Frame,
 };
 
-use crate::{App, InputMode};
+use crate::app::{App, InputMode};
 
 pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
