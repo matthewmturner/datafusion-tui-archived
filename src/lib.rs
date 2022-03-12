@@ -16,56 +16,22 @@
 // under the License.
 
 pub mod app;
-pub mod editor;
+pub mod events;
 
 use std::io;
+use std::time::Duration;
 
+use app::AppReturn;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use datafusion::prelude::*;
 use tui::{backend::CrosstermBackend, Terminal};
 
-use crate::app::datafusion::context::QueryResults;
-use crate::app::handlers::{key_event_handler, KeyEvent};
 use crate::app::ui;
-use crate::editor::Editor;
-
-enum InputMode {
-    Normal,
-    Editing,
-}
-
-/// App holds the state of the application
-pub struct App {
-    /// Current input mode
-    input_mode: InputMode,
-    /// History of recorded messages
-    sql_history: Vec<String>,
-    /// Editor
-    editor: Editor,
-    /// DataFusion `ExecutionContext`
-    context: ExecutionContext,
-    /// Results from DataFusion query
-    query_results: Option<QueryResults>,
-}
-
-impl App {
-    pub fn new() -> App {
-        let config = ExecutionConfig::new().with_information_schema(true);
-        let ctx = ExecutionContext::with_config(config);
-
-        App {
-            input_mode: InputMode::Normal,
-            sql_history: Vec::new(),
-            editor: Editor::default(),
-            context: ctx,
-            query_results: None,
-        }
-    }
-}
+use crate::app::App;
+use crate::events::{Event, Events};
 
 pub async fn run_app(app: &mut App) -> io::Result<()> {
     enable_raw_mode().unwrap();
@@ -74,14 +40,21 @@ pub async fn run_app(app: &mut App) -> io::Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).unwrap();
 
+    let tick_rate = Duration::from_millis(200);
+    let events = Events::new(tick_rate);
+
     loop {
         terminal.draw(|f| ui::generate_ui(f, app))?;
 
-        let result = key_event_handler(app).await;
-        match result {
-            Ok(KeyEvent::Continue) => continue,
-            Ok(KeyEvent::Exit) => break,
-            Err(_) => return Ok(()),
+        let event = events.next().unwrap();
+
+        let result = match event {
+            Event::KeyInput(key) => app.key_handler(key).await,
+            Event::Tick => app.update_on_tick(),
+        };
+
+        if result == AppReturn::Exit {
+            break;
         }
     }
 

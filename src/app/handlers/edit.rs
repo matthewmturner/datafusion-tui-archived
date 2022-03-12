@@ -15,15 +15,16 @@
 // specific language governing permissions and limitations
 // under the License.
 
-use crossterm::event::{KeyCode, KeyEvent};
+use std::io;
 
 use crate::app::datafusion::context::QueryResults;
-use crate::{App, InputMode};
+use crate::app::{App, AppReturn, InputMode};
+use crate::events::Key;
 
-pub async fn edit_mode_handler(app: &mut App, key: KeyEvent) {
-    match key.code {
-        KeyCode::Enter => enter_handler(app).await,
-        KeyCode::Char(c) => match c {
+pub async fn edit_mode_handler(app: &mut App, key: Key) -> io::Result<AppReturn> {
+    match key {
+        Key::Enter => enter_handler(app).await,
+        Key::Char(c) => match c {
             ';' => {
                 app.editor.input.append_char(c);
                 app.editor.sql_terminated = true;
@@ -32,15 +33,16 @@ pub async fn edit_mode_handler(app: &mut App, key: KeyEvent) {
                 app.editor.input.append_char(c);
             }
         },
-        KeyCode::Tab => app.editor.input.tab(),
-        KeyCode::Backspace => {
+        Key::Tab => app.editor.input.tab(),
+        Key::Backspace => {
             app.editor.input.backspace();
         }
-        KeyCode::Esc => {
+        Key::Esc => {
             app.input_mode = InputMode::Normal;
         }
         _ => {}
-    }
+    };
+    Ok(AppReturn::Continue)
 }
 
 async fn enter_handler(app: &mut App) {

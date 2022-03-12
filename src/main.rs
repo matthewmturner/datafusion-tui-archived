@@ -19,7 +19,8 @@
 
 use std::error::Error;
 
-use datafusion_tui::{run_app, App};
+use datafusion_tui::app::App;
+use datafusion_tui::run_app;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
