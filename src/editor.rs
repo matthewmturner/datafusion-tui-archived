@@ -3,11 +3,6 @@ use std::io;
 
 use unicode_width::UnicodeWidthStr;
 
-pub struct Scroll {
-    x: u16,
-    y: u16,
-}
-
 /// Single line of text in SQL Editor and cursor over it
 pub struct Line {
     // text: String,
@@ -134,8 +129,6 @@ pub struct Editor {
     pub input: Input,
     /// Flag if SQL statement was terminated with ';'
     pub sql_terminated: bool,
-    /// Rows to scroll the editor
-    scroll: Scroll,
 }
 impl Default for Editor {
     fn default() -> Editor {
@@ -145,7 +138,6 @@ impl Default for Editor {
         Editor {
             input,
             sql_terminated: false,
-            scroll: Scroll { x: 0, y: 0 },
         }
     }
 }

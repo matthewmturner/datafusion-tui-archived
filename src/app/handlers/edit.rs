@@ -15,14 +15,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-use std::cmp;
-
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::app::datafusion::context::QueryResults;
 use crate::{App, InputMode};
 
-pub async fn edit_mode_handler(app: &mut App<'_>, key: KeyEvent) {
+pub async fn edit_mode_handler(app: &mut App, key: KeyEvent) {
     match key.code {
         KeyCode::Enter => enter_handler(app).await,
         KeyCode::Char(c) => match c {
@@ -38,10 +36,6 @@ pub async fn edit_mode_handler(app: &mut App<'_>, key: KeyEvent) {
         KeyCode::Backspace => {
             app.editor.input.backspace();
         }
-        // KeyCode::Up => app.editor.cursor_row = cmp::max(app.editor.cursor_row - 1, 1),
-        // KeyCode::Down => app.editor.cursor_row = cmp::max(app.editor.cursor_row + 1, 1),
-        // KeyCode::Left => app.editor.cursor_column = cmp::max(app.editor.cursor_column - 1, 1),
-        // KeyCode::Right => app.editor.cursor_column = cmp::max(app.editor.cursor_column + 1, 1),
         KeyCode::Esc => {
             app.input_mode = InputMode::Normal;
         }
@@ -49,7 +43,7 @@ pub async fn edit_mode_handler(app: &mut App<'_>, key: KeyEvent) {
     }
 }
 
-async fn enter_handler(app: &mut App<'_>) {
+async fn enter_handler(app: &mut App) {
     match app.editor.sql_terminated {
         false => {
             app.editor.input.append_char('\n');
@@ -63,7 +57,9 @@ async fn enter_handler(app: &mut App<'_>) {
             let df = app.context.sql(&sql).await;
             match df {
                 Ok(df) => {
-                    app.query_results = Some(QueryResults::new(df.collect().await.unwrap()));
+                    app.query_results = Some(QueryResults {
+                        batches: df.collect().await.unwrap(),
+                    });
                 }
                 Err(e) => {
                     let err_msg = format!("{}", e);

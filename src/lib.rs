@@ -20,11 +20,16 @@ pub mod editor;
 
 use std::io;
 
+use crossterm::{
+    event::{DisableMouseCapture, EnableMouseCapture},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
 use datafusion::prelude::*;
-use tui::{backend::Backend, Terminal};
+use tui::{backend::CrosstermBackend, Terminal};
 
 use crate::app::datafusion::context::QueryResults;
-use crate::app::handlers::{key_event_handler, KeyEventAction};
+use crate::app::handlers::{key_event_handler, KeyEvent};
 use crate::app::ui;
 use crate::editor::Editor;
 
@@ -34,9 +39,7 @@ enum InputMode {
 }
 
 /// App holds the state of the application
-pub struct App<'a> {
-    // /// Current value of the input box
-    // input: String,
+pub struct App {
     /// Current input mode
     input_mode: InputMode,
     /// History of recorded messages
@@ -46,32 +49,15 @@ pub struct App<'a> {
     /// DataFusion `ExecutionContext`
     context: ExecutionContext,
     /// Results from DataFusion query
-    query_results: Option<QueryResults<'a>>,
+    query_results: Option<QueryResults>,
 }
 
-// impl Default for App {
-//     fn default() -> App {
-//         let config = ExecutionConfig::new().with_information_schema(true);
-//         let ctx = ExecutionContext::with_config(config);
-
-//         App {
-//             // input: String::new(),
-//             input_mode: InputMode::Normal,
-//             sql_history: Vec::new(),
-//             editor: Editor::default(),
-//             context: ctx,
-//             query_results: QueryResults::default(),
-//         }
-//     }
-// }
-
-impl<'a> App<'a> {
-    fn new() -> App<'a> {
+impl App {
+    pub fn new() -> App {
         let config = ExecutionConfig::new().with_information_schema(true);
         let ctx = ExecutionContext::with_config(config);
 
         App {
-            // input: String::new(),
             input_mode: InputMode::Normal,
             sql_history: Vec::new(),
             editor: Editor::default(),
@@ -81,15 +67,30 @@ impl<'a> App<'a> {
     }
 }
 
-pub async fn run_app<B: Backend>(terminal: &mut Terminal<B>, app: &mut App<'_>) -> io::Result<()> {
+pub async fn run_app(app: &mut App) -> io::Result<()> {
+    enable_raw_mode().unwrap();
+    let mut stdout = io::stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).unwrap();
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend).unwrap();
+
     loop {
         terminal.draw(|f| ui::generate_ui(f, app))?;
 
         let result = key_event_handler(app).await;
         match result {
-            Ok(KeyEventAction::Continue) => {}
-            Ok(KeyEventAction::Exit) => return Ok(()),
+            Ok(KeyEvent::Continue) => continue,
+            Ok(KeyEvent::Exit) => break,
             Err(_) => return Ok(()),
         }
     }
+
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+    Ok(())
 }
