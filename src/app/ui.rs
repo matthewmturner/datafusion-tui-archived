@@ -18,16 +18,17 @@
 use arrow::util::pretty::pretty_format_batches;
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
+use tui_logger::TuiLoggerWidget;
 
 use crate::app::{App, InputMode};
 
-pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(2)
@@ -41,56 +42,12 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         )
         .split(f.size());
 
-    let (msg, style) = match app.input_mode {
-        InputMode::Normal => (
-            vec![
-                Span::raw("Press "),
-                Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(" to exit, "),
-                Span::styled("e", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(" to start editing."),
-            ],
-            Style::default().add_modifier(Modifier::RAPID_BLINK),
-        ),
-        InputMode::Editing => (
-            vec![
-                Span::raw("Press "),
-                Span::styled("Esc", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(" to stop editing, "),
-                Span::styled("Enter", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(" to record the message"),
-            ],
-            Style::default(),
-        ),
-    };
-    let mut text = Text::from(Spans::from(msg));
-    text.patch_style(style);
-    let help_message = Paragraph::new(text);
+    let help_message = draw_help(app);
     f.render_widget(help_message, chunks[0]);
 
-    let editor_input = Paragraph::new(app.editor.input.combine_lines())
-        .style(match app.input_mode {
-            InputMode::Normal => Style::default(),
-            InputMode::Editing => Style::default().fg(Color::Yellow),
-        })
-        .block(Block::default().borders(Borders::ALL).title("SQL Editor"));
-    // .scroll((1, 1));
-    f.render_widget(editor_input, chunks[1]);
-    match app.input_mode {
-        InputMode::Normal =>
-            // Hide the cursor. `Frame` does this by default, so we don't need to do anything here
-            {}
-
-        InputMode::Editing => {
-            // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
-            f.set_cursor(
-                // Put cursor past the end of the input text
-                chunks[1].x + app.editor.get_cursor_column() + 1,
-                // Move one line down, from the border to the input line
-                chunks[1].y + app.editor.get_cursor_row() + 1,
-            )
-        }
-    }
+    let editor = draw_editor(app);
+    f.render_widget(editor, chunks[1]);
+    draw_cursor(app, f, &chunks);
 
     let messages: Vec<ListItem> = app
         .sql_history
@@ -119,4 +76,77 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     } else {
         f.render_widget(messages, chunks[2]);
     }
+}
+
+fn draw_help<'a>(app: &mut App) -> Paragraph<'a> {
+    let (msg, style) = match app.input_mode {
+        InputMode::Normal => (
+            vec![
+                Span::raw("Press "),
+                Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" to exit, "),
+                Span::styled("e", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" to start editing."),
+            ],
+            Style::default().add_modifier(Modifier::RAPID_BLINK),
+        ),
+        InputMode::Editing => (
+            vec![
+                Span::raw("Press "),
+                Span::styled("Esc", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" to stop editing, "),
+                Span::styled("Enter", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" to record the message"),
+            ],
+            Style::default(),
+        ),
+    };
+    let mut text = Text::from(Spans::from(msg));
+    text.patch_style(style);
+    Paragraph::new(text)
+}
+
+fn draw_editor<'a>(app: &mut App) -> Paragraph<'a> {
+    Paragraph::new(app.editor.input.combine_lines())
+        .style(match app.input_mode {
+            InputMode::Normal => Style::default(),
+            InputMode::Editing => Style::default().fg(Color::Yellow),
+        })
+        .block(Block::default().borders(Borders::ALL).title("SQL Editor"))
+}
+
+fn draw_cursor<B: Backend>(app: &mut App, f: &mut Frame<B>, chunks: &Vec<Rect>) {
+    match app.input_mode {
+        InputMode::Normal =>
+            // Hide the cursor. `Frame` does this by default, so we don't need to do anything here
+            {}
+
+        InputMode::Editing => {
+            // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
+            f.set_cursor(
+                // Put cursor past the end of the input text
+                chunks[1].x + app.editor.get_cursor_column() + 1,
+                // Move one line down, from the border to the input line
+                chunks[1].y + app.editor.get_cursor_row() + 1,
+            )
+        }
+    };
+}
+
+// fn draw_query_results<'a>(app: &mut App) -> Paragraph<'a> {}
+
+fn draw_logs<'a>() -> TuiLoggerWidget<'a> {
+    TuiLoggerWidget::default()
+        .style_error(Style::default().fg(Color::Red))
+        .style_debug(Style::default().fg(Color::Green))
+        .style_warn(Style::default().fg(Color::Yellow))
+        .style_trace(Style::default().fg(Color::Gray))
+        .style_info(Style::default().fg(Color::Blue))
+        .block(
+            Block::default()
+                .title("Logs")
+                .border_style(Style::default().fg(Color::White).bg(Color::Black))
+                .borders(Borders::ALL),
+        )
+        .style(Style::default().fg(Color::White).bg(Color::Black))
 }

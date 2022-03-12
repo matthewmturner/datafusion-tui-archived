@@ -423,6 +423,7 @@ dependencies = [
  "clap",
  "crossterm 0.23.0",
  "datafusion",
+ "log",
  "tokio",
  "tui",
  "tui-logger",
@@ -1519,13 +1520,14 @@ dependencies = [
 [[package]]
 name = "tui-logger"
 version = "0.7.1"
-source = "git+https://github.com/gin66/tui-logger?rev=7d43c709023970655acde3d10caf8a4b4944097d#7d43c709023970655acde3d10caf8a4b4944097d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "66278ef876c1336aca32cc590598563026dc3caf4cb73a20d47a3d499b913bbb"
 dependencies = [
  "chrono",
  "fxhash",
  "lazy_static",
  "log",
- "parking_lot 0.12.0",
+ "parking_lot 0.11.2",
  "slog",
  "tui",
 ]

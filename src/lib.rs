@@ -44,7 +44,7 @@ pub async fn run_app(app: &mut App) -> io::Result<()> {
     let events = Events::new(tick_rate);
 
     loop {
-        terminal.draw(|f| ui::generate_ui(f, app))?;
+        terminal.draw(|f| ui::draw_ui(f, app))?;
 
         let event = events.next().unwrap();
 

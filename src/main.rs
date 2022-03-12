@@ -21,10 +21,13 @@ use std::error::Error;
 
 use datafusion_tui::app::App;
 use datafusion_tui::run_app;
+use log::LevelFilter;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new();
+    tui_logger::init_logger(LevelFilter::Debug).unwrap();
+    tui_logger::set_default_level(LevelFilter::Debug);
     let res = run_app(&mut app).await;
 
     if let Err(err) = res {
