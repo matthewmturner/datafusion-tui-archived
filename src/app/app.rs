@@ -5,6 +5,20 @@ use crate::app::editor::Editor;
 use crate::app::handlers::key_event_handler;
 use crate::events::Key;
 
+pub struct Tabs {
+    pub titles: Vec<&'static str>,
+    pub index: usize,
+}
+
+impl Tabs {
+    fn new() -> Self {
+        Tabs {
+            titles: vec!["SQL Editor", "Logs"],
+            index: 0,
+        }
+    }
+}
+
 pub enum InputMode {
     Normal,
     Editing,
@@ -18,11 +32,11 @@ pub enum AppReturn {
 
 /// App holds the state of the application
 pub struct App {
+    /// Application tabs
+    pub tabs: Tabs,
     /// Current input mode
     pub input_mode: InputMode,
-    /// History of recorded messages
-    pub sql_history: Vec<String>,
-    /// Editor
+    /// SQL Editor and it's state
     pub editor: Editor,
     /// DataFusion `ExecutionContext`
     pub context: ExecutionContext,
@@ -36,8 +50,8 @@ impl App {
         let ctx = ExecutionContext::with_config(config);
 
         App {
+            tabs: Tabs::new(),
             input_mode: InputMode::Normal,
-            sql_history: Vec::new(),
             editor: Editor::default(),
             context: ctx,
             query_results: None,

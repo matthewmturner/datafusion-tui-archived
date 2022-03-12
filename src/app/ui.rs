@@ -21,7 +21,7 @@ use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, Paragraph, Tabs},
     Frame,
 };
 use tui_logger::TuiLoggerWidget;
@@ -34,6 +34,7 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .margin(2)
         .constraints(
             [
+                Constraint::Length(3),
                 Constraint::Length(1),
                 Constraint::Length(30),
                 Constraint::Min(1),
@@ -42,40 +43,17 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         )
         .split(f.size());
 
+    let tabs = draw_tabs(app);
+    f.render_widget(tabs, chunks[0]);
+
     let help_message = draw_help(app);
-    f.render_widget(help_message, chunks[0]);
+    f.render_widget(help_message, chunks[1]);
 
     let editor = draw_editor(app);
-    f.render_widget(editor, chunks[1]);
+    f.render_widget(editor, chunks[2]);
     draw_cursor(app, f, &chunks);
-
-    let messages: Vec<ListItem> = app
-        .sql_history
-        .iter()
-        .enumerate()
-        .map(|(i, m)| {
-            let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
-            ListItem::new(content)
-        })
-        .collect();
-    let messages =
-        List::new(messages).block(Block::default().borders(Borders::ALL).title("Query Output"));
-    if let Some(res) = &app.query_results {
-        let query = app.sql_history.last().unwrap();
-        if query.starts_with("CREATE") {
-            f.render_widget(messages, chunks[2]);
-        } else {
-            let table = pretty_format_batches(&res.batches).unwrap().to_string();
-            let p = Paragraph::new(table).block(
-                Block::default()
-                    .borders(Borders::TOP)
-                    .title("Query Results"),
-            );
-            f.render_widget(p, chunks[2]);
-        }
-    } else {
-        f.render_widget(messages, chunks[2]);
-    }
+    let query_results = draw_query_results(app);
+    f.render_widget(query_results, chunks[3]);
 }
 
 fn draw_help<'a>(app: &mut App) -> Paragraph<'a> {
@@ -133,7 +111,44 @@ fn draw_cursor<B: Backend>(app: &mut App, f: &mut Frame<B>, chunks: &Vec<Rect>) 
     };
 }
 
-// fn draw_query_results<'a>(app: &mut App) -> Paragraph<'a> {}
+fn draw_query_results<'a>(app: &'a mut App) -> Paragraph<'a> {
+    let query_results = match &app.query_results {
+        Some(results) => {
+            let query = app.editor.history.last().unwrap();
+            if query.starts_with("CREATE") {
+                Paragraph::new(String::from("Table created"))
+            } else {
+                let table = pretty_format_batches(&results.batches).unwrap().to_string();
+                Paragraph::new(table)
+            }
+        }
+        None => {
+            let last_query = app.editor.history.last();
+            match last_query {
+                Some(query) => Paragraph::new(query.as_str()),
+                None => Paragraph::new("No queries yet"),
+            }
+        }
+    };
+    query_results.block(
+        Block::default()
+            .borders(Borders::TOP)
+            .title("Query Results"),
+    )
+}
+
+fn draw_tabs<'a>(app: &mut App) -> Tabs<'a> {
+    let titles = app
+        .tabs
+        .titles
+        .iter()
+        .map(|t| Spans::from(vec![Span::styled(*t, Style::default())]))
+        .collect();
+
+    Tabs::new(titles)
+        .block(Block::default().borders(Borders::ALL).title("Tabs"))
+        .select(app.tabs.index)
+}
 
 fn draw_logs<'a>() -> TuiLoggerWidget<'a> {
     TuiLoggerWidget::default()
