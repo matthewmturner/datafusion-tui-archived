@@ -19,15 +19,22 @@
 
 use std::error::Error;
 
+use clap::Parser;
 use datafusion_tui::app::App;
+use datafusion_tui::cli::args::Args;
 use datafusion_tui::run_app;
 use log::LevelFilter;
+use mimalloc::MiMalloc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let mut app = App::new();
     tui_logger::init_logger(LevelFilter::Trace).unwrap();
     tui_logger::set_default_level(LevelFilter::Trace);
+    let args = Args::parse();
+    let mut app = App::new(args).await;
     let res = run_app(&mut app).await;
 
     if let Err(err) = res {

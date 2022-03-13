@@ -16,6 +16,7 @@
 // under the License.
 
 pub mod app;
+pub mod cli;
 pub mod events;
 
 use std::io;
@@ -31,6 +32,7 @@ use tui::{backend::CrosstermBackend, Terminal};
 
 use crate::app::ui;
 use crate::app::App;
+
 use crate::events::{Event, Events};
 
 pub async fn run_app(app: &mut App) -> io::Result<()> {

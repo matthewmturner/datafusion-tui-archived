@@ -240,6 +240,7 @@ fn draw_query_history<'a>(app: &mut App) -> List<'a> {
 }
 
 fn draw_logs<'a>() -> TuiLoggerWidget<'a> {
+    // TODO: Figure out how to scroll logs
     TuiLoggerWidget::default()
         .style_error(Style::default().fg(Color::Red))
         .style_debug(Style::default().fg(Color::Green))

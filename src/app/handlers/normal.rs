@@ -26,6 +26,7 @@ pub enum NormalModeAction {
 }
 
 pub fn normal_mode_handler(app: &mut App, key: Key) -> io::Result<AppReturn> {
+    // TODO: Use arrow keys to scroll up and down QueryResults
     let result = match key {
         Key::Char('e') => {
             app.input_mode = InputMode::Editing;
