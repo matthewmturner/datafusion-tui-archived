@@ -18,41 +18,114 @@
 //! Context (remote or local)
 
 use arrow::record_batch::RecordBatch;
-use arrow::util::display::array_value_to_string;
 use datafusion::dataframe::DataFrame;
-use datafusion::error::DataFusionError;
+use datafusion::error::{DataFusionError, Result};
 use datafusion::execution::context::{ExecutionConfig, ExecutionContext};
+use log::{debug, info};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
+use std::sync::Arc;
+use std::time::Instant;
 
-/// The CLI supports using a local DataFusion context or a distributed BallistaContext
-// pub enum Context {
-/// In-process execution with DataFusion
-// Local(ExecutionContext),
-/// Distributed execution with Ballista (if available)
-// Remote(BallistaContext),
-// }
-
-// impl Context {
-//     /// create a new remote context with given host and port
-//     pub fn new_remote(host: &str, port: u16) -> Result<Context> {
-//         Ok(Context::Remote(BallistaContext::try_new(host, port)?))
-//     }
-
-//     /// create a local context using the given config
-//     pub fn new_local(config: &ExecutionConfig) -> Context {
-//         Context::Local(ExecutionContext::with_config(config.clone()))
-//     }
-
-//     /// execute an SQL statement against the context
-//     pub async fn sql(&mut self, sql: &str) -> Result<Arc<dyn DataFrame>> {
-//         match self {
-//             Context::Local(datafusion) => datafusion.sql(sql).await,
-//             Context::Remote(ballista) => ballista.sql(sql).await,
-//         }
-//     }
-// }
+use crate::cli::print_options::PrintOptions;
 
 pub struct QueryResults {
     pub batches: Vec<RecordBatch>,
+}
+
+/// The CLI supports using a local DataFusion context or a distributed BallistaContext
+pub enum Context {
+    /// In-process execution with DataFusion
+    Local(ExecutionContext),
+    /// Distributed execution with Ballista (if available)
+    Remote(BallistaContext), // TODO: Setup Ballista
+}
+
+impl Context {
+    /// create a new remote context with given host and port
+    pub fn new_remote(host: &str, port: u16) -> Result<Context> {
+        debug!("Created BallistaContext @ {:?}:{:?}", host, port);
+        Ok(Context::Remote(BallistaContext::try_new(host, port)?))
+    }
+
+    /// create a local context using the given config
+    pub fn new_local(config: &ExecutionConfig) -> Context {
+        debug!("Created ExecutionContext");
+        Context::Local(ExecutionContext::with_config(config.clone()))
+    }
+
+    /// execute an SQL statement against the context
+    pub async fn sql(&mut self, sql: &str) -> Result<Arc<dyn DataFrame>> {
+        info!("Executing SQL: {:?}", sql);
+        match self {
+            Context::Local(datafusion) => datafusion.sql(sql).await,
+            Context::Remote(ballista) => ballista.sql(sql).await,
+        }
+    }
+
+    pub async fn exec_files(&mut self, files: Vec<String>, print_options: &PrintOptions) {
+        let files = files
+            .into_iter()
+            .map(|file_path| File::open(file_path).unwrap())
+            .collect::<Vec<_>>();
+        for file in files {
+            let mut reader = BufReader::new(file);
+            exec_from_lines(self, &mut reader, print_options).await;
+        }
+    }
+}
+
+async fn exec_from_lines(
+    ctx: &mut Context,
+    reader: &mut BufReader<File>,
+    print_options: &PrintOptions,
+) {
+    let mut query = "".to_owned();
+
+    for line in reader.lines() {
+        match line {
+            Ok(line) if line.starts_with("--") => {
+                continue;
+            }
+            Ok(line) => {
+                let line = line.trim_end();
+                query.push_str(line);
+                if line.ends_with(';') {
+                    match exec_and_print(ctx, print_options, query).await {
+                        Ok(_) => {}
+                        Err(err) => println!("{:?}", err),
+                    }
+                    query = "".to_owned();
+                } else {
+                    query.push('\n');
+                }
+            }
+            _ => {
+                break;
+            }
+        }
+    }
+
+    // run the left over query if the last statement doesn't contain ‘;’
+    if !query.is_empty() {
+        match exec_and_print(ctx, print_options, query).await {
+            Ok(_) => {}
+            Err(err) => println!("{:?}", err),
+        }
+    }
+}
+
+async fn exec_and_print(
+    ctx: &mut Context,
+    print_options: &PrintOptions,
+    sql: String,
+) -> Result<()> {
+    let now = Instant::now();
+    let df = ctx.sql(&sql).await?;
+    let results = df.collect().await?;
+    print_options.print_batches(&results, now)?;
+
+    Ok(())
 }
 
 // implement wrappers around the BallistaContext to support running without ballista
@@ -73,16 +146,16 @@ impl BallistaContext {
     }
 }
 
-// #[cfg(not(feature = "ballista"))]
-// pub struct BallistaContext();
-// #[cfg(not(feature = "ballista"))]
-// impl BallistaContext {
-//     pub fn try_new(_host: &str, _port: u16) -> Result<Self> {
-//         Err(DataFusionError::NotImplemented(
-//             "Remote execution not supported. Compile with feature 'ballista' to enable".to_string(),
-//         ))
-//     }
-//     pub async fn sql(&mut self, _sql: &str) -> Result<Arc<dyn DataFrame>> {
-//         unreachable!()
-//     }
-// }
+#[cfg(not(feature = "ballista"))]
+pub struct BallistaContext();
+#[cfg(not(feature = "ballista"))]
+impl BallistaContext {
+    pub fn try_new(_host: &str, _port: u16) -> Result<Self> {
+        Err(DataFusionError::NotImplemented(
+            "Remote execution not supported. Compile with feature 'ballista' to enable".to_string(),
+        ))
+    }
+    pub async fn sql(&mut self, _sql: &str) -> Result<Arc<dyn DataFrame>> {
+        unreachable!()
+    }
+}
