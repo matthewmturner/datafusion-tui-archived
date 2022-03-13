@@ -55,11 +55,12 @@ async fn enter_handler(app: &mut App) {
             app.editor.history.push(sql.clone());
             app.editor.input.clear();
             app.editor.sql_terminated = false;
-            // TODO: Remove unwrap and add result / action
+
             let df = app.context.sql(&sql).await;
             match df {
                 Ok(df) => {
                     app.query_results = Some(QueryResults {
+                        // TODO: Remove unwrap and add result / action
                         batches: df.collect().await.unwrap(),
                     });
                 }

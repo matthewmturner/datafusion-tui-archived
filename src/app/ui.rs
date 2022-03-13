@@ -180,6 +180,7 @@ fn draw_cursor<B: Backend>(app: &mut App, f: &mut Frame<B>, chunks: &Vec<Rect>) 
 }
 
 fn draw_query_results<'a>(app: &'a mut App) -> Paragraph<'a> {
+    // TODO: Include query execution time in title
     let query_results = match &app.query_results {
         Some(results) => {
             let query = app.editor.history.last().unwrap();
