@@ -21,7 +21,7 @@ use tui::{
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, Borders, Paragraph, Tabs},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs},
     Frame,
 };
 use tui_logger::TuiLoggerWidget;
@@ -29,31 +29,100 @@ use tui_logger::TuiLoggerWidget;
 use crate::app::{App, InputMode};
 
 pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(2)
-        .constraints(
-            [
-                Constraint::Length(3),
-                Constraint::Length(1),
-                Constraint::Length(30),
-                Constraint::Min(1),
-            ]
-            .as_ref(),
-        )
-        .split(f.size());
+    match app.tabs.index {
+        // SQL Editor
+        0 => {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(3),
+                        Constraint::Length(30),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
 
-    let tabs = draw_tabs(app);
-    f.render_widget(tabs, chunks[0]);
+            let help_message = draw_help(app);
+            f.render_widget(help_message, chunks[0]);
 
-    let help_message = draw_help(app);
-    f.render_widget(help_message, chunks[1]);
+            let tabs = draw_tabs(app);
+            f.render_widget(tabs, chunks[1]);
+            let editor = draw_editor(app);
+            f.render_widget(editor, chunks[2]);
+            draw_cursor(app, f, &chunks);
+            let query_results = draw_query_results(app);
+            f.render_widget(query_results, chunks[3]);
+        }
+        // Query History
+        1 => {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
 
-    let editor = draw_editor(app);
-    f.render_widget(editor, chunks[2]);
-    draw_cursor(app, f, &chunks);
-    let query_results = draw_query_results(app);
-    f.render_widget(query_results, chunks[3]);
+            let help_message = draw_help(app);
+            f.render_widget(help_message, chunks[0]);
+
+            let tabs = draw_tabs(app);
+            f.render_widget(tabs, chunks[1]);
+            let query_history = draw_query_history(app);
+            f.render_widget(query_history, chunks[2])
+        }
+        2 => {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
+
+            let help_message = draw_help(app);
+            f.render_widget(help_message, chunks[0]);
+
+            let tabs = draw_tabs(app);
+            f.render_widget(tabs, chunks[1]);
+            let logs = draw_logs();
+            f.render_widget(logs, chunks[2])
+        }
+        _ => {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
+
+            let help_message = draw_help(app);
+            f.render_widget(help_message, chunks[0]);
+
+            let tabs = draw_tabs(app);
+            f.render_widget(tabs, chunks[1]);
+        }
+    }
 }
 
 fn draw_help<'a>(app: &mut App) -> Paragraph<'a> {
@@ -98,14 +167,13 @@ fn draw_cursor<B: Backend>(app: &mut App, f: &mut Frame<B>, chunks: &Vec<Rect>) 
         InputMode::Normal =>
             // Hide the cursor. `Frame` does this by default, so we don't need to do anything here
             {}
-
         InputMode::Editing => {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[1].x + app.editor.get_cursor_column() + 1,
+                chunks[2].x + app.editor.get_cursor_column() + 1,
                 // Move one line down, from the border to the input line
-                chunks[1].y + app.editor.get_cursor_row() + 1,
+                chunks[2].y + app.editor.get_cursor_row() + 1,
             )
         }
     };
@@ -148,6 +216,27 @@ fn draw_tabs<'a>(app: &mut App) -> Tabs<'a> {
     Tabs::new(titles)
         .block(Block::default().borders(Borders::ALL).title("Tabs"))
         .select(app.tabs.index)
+        .style(Style::default())
+        .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+}
+
+fn draw_query_history<'a>(app: &mut App) -> List<'a> {
+    let messages: Vec<ListItem> = app
+        .editor
+        .history
+        .iter()
+        .enumerate()
+        .map(|(i, m)| {
+            let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
+            ListItem::new(content)
+        })
+        .collect();
+
+    List::new(messages).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Query History"),
+    )
 }
 
 fn draw_logs<'a>() -> TuiLoggerWidget<'a> {
@@ -160,8 +249,7 @@ fn draw_logs<'a>() -> TuiLoggerWidget<'a> {
         .block(
             Block::default()
                 .title("Logs")
-                .border_style(Style::default().fg(Color::White).bg(Color::Black))
+                .border_style(Style::default())
                 .borders(Borders::ALL),
         )
-        .style(Style::default().fg(Color::White).bg(Color::Black))
 }

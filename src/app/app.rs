@@ -1,4 +1,5 @@
 use datafusion::prelude::{ExecutionConfig, ExecutionContext};
+use log::debug;
 
 use crate::app::datafusion::context::QueryResults;
 use crate::app::editor::Editor;
@@ -13,7 +14,7 @@ pub struct Tabs {
 impl Tabs {
     fn new() -> Self {
         Tabs {
-            titles: vec!["SQL Editor", "Logs"],
+            titles: vec!["SQL Editor [0]", "Query History [1]", "Logs [2]"],
             index: 0,
         }
     }
@@ -59,6 +60,7 @@ impl App {
     }
 
     pub async fn key_handler(&mut self, key: Key) -> AppReturn {
+        debug!("Key event: {:?}", key);
         key_event_handler(self, key).await.unwrap()
     }
 

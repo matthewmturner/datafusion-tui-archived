@@ -26,14 +26,25 @@ pub enum NormalModeAction {
 }
 
 pub fn normal_mode_handler(app: &mut App, key: Key) -> io::Result<AppReturn> {
-    match key {
+    let result = match key {
         Key::Char('e') => {
             app.input_mode = InputMode::Editing;
-            return Ok(AppReturn::Continue);
+            Ok(AppReturn::Continue)
         }
-        Key::Char('q') => {
-            return Ok(AppReturn::Exit);
+        Key::Char('q') => Ok(AppReturn::Exit),
+        Key::Char(c) => {
+            if c.is_ascii_digit() {
+                let input_idx = c.to_digit(10).unwrap() as usize;
+                if input_idx < app.tabs.titles.len() {
+                    app.tabs.index = input_idx
+                } else {
+                };
+                Ok(AppReturn::Continue)
+            } else {
+                Ok(AppReturn::Continue)
+            }
         }
-        _ => return Ok(AppReturn::Continue),
-    }
+        _ => Ok(AppReturn::Continue),
+    };
+    result
 }

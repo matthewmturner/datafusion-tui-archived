@@ -26,8 +26,8 @@ use log::LevelFilter;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let mut app = App::new();
-    tui_logger::init_logger(LevelFilter::Debug).unwrap();
-    tui_logger::set_default_level(LevelFilter::Debug);
+    tui_logger::init_logger(LevelFilter::Trace).unwrap();
+    tui_logger::set_default_level(LevelFilter::Trace);
     let res = run_app(&mut app).await;
 
     if let Err(err) = res {
