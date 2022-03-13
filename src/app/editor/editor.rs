@@ -129,6 +129,8 @@ pub struct Editor {
     pub input: Input,
     /// Flag if SQL statement was terminated with ';'
     pub sql_terminated: bool,
+    /// History of commands entered
+    pub history: Vec<String>,
 }
 impl Default for Editor {
     fn default() -> Editor {
@@ -137,6 +139,7 @@ impl Default for Editor {
         let input = Input::default();
         Editor {
             input,
+            history: Vec::new(),
             sql_terminated: false,
         }
     }

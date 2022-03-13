@@ -18,29 +18,114 @@
 use arrow::util::pretty::pretty_format_batches;
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs},
     Frame,
 };
+use tui_logger::TuiLoggerWidget;
 
 use crate::app::{App, InputMode};
 
-pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .margin(2)
-        .constraints(
-            [
-                Constraint::Length(1),
-                Constraint::Length(30),
-                Constraint::Min(1),
-            ]
-            .as_ref(),
-        )
-        .split(f.size());
+pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    match app.tabs.index {
+        // SQL Editor
+        0 => {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(3),
+                        Constraint::Length(30),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
 
+            let help_message = draw_help(app);
+            f.render_widget(help_message, chunks[0]);
+
+            let tabs = draw_tabs(app);
+            f.render_widget(tabs, chunks[1]);
+            let editor = draw_editor(app);
+            f.render_widget(editor, chunks[2]);
+            draw_cursor(app, f, &chunks);
+            let query_results = draw_query_results(app);
+            f.render_widget(query_results, chunks[3]);
+        }
+        // Query History
+        1 => {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
+
+            let help_message = draw_help(app);
+            f.render_widget(help_message, chunks[0]);
+
+            let tabs = draw_tabs(app);
+            f.render_widget(tabs, chunks[1]);
+            let query_history = draw_query_history(app);
+            f.render_widget(query_history, chunks[2])
+        }
+        2 => {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
+
+            let help_message = draw_help(app);
+            f.render_widget(help_message, chunks[0]);
+
+            let tabs = draw_tabs(app);
+            f.render_widget(tabs, chunks[1]);
+            let logs = draw_logs();
+            f.render_widget(logs, chunks[2])
+        }
+        _ => {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(2)
+                .constraints(
+                    [
+                        Constraint::Length(1),
+                        Constraint::Length(3),
+                        Constraint::Min(1),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
+
+            let help_message = draw_help(app);
+            f.render_widget(help_message, chunks[0]);
+
+            let tabs = draw_tabs(app);
+            f.render_widget(tabs, chunks[1]);
+        }
+    }
+}
+
+fn draw_help<'a>(app: &mut App) -> Paragraph<'a> {
     let (msg, style) = match app.input_mode {
         InputMode::Normal => (
             vec![
@@ -65,35 +150,80 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     };
     let mut text = Text::from(Spans::from(msg));
     text.patch_style(style);
-    let help_message = Paragraph::new(text);
-    f.render_widget(help_message, chunks[0]);
+    Paragraph::new(text)
+}
 
-    let editor_input = Paragraph::new(app.editor.input.combine_lines())
+fn draw_editor<'a>(app: &mut App) -> Paragraph<'a> {
+    Paragraph::new(app.editor.input.combine_lines())
         .style(match app.input_mode {
             InputMode::Normal => Style::default(),
             InputMode::Editing => Style::default().fg(Color::Yellow),
         })
-        .block(Block::default().borders(Borders::ALL).title("SQL Editor"));
-    // .scroll((1, 1));
-    f.render_widget(editor_input, chunks[1]);
+        .block(Block::default().borders(Borders::ALL).title("SQL Editor"))
+}
+
+fn draw_cursor<B: Backend>(app: &mut App, f: &mut Frame<B>, chunks: &Vec<Rect>) {
     match app.input_mode {
         InputMode::Normal =>
             // Hide the cursor. `Frame` does this by default, so we don't need to do anything here
             {}
-
         InputMode::Editing => {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[1].x + app.editor.get_cursor_column() + 1,
+                chunks[2].x + app.editor.get_cursor_column() + 1,
                 // Move one line down, from the border to the input line
-                chunks[1].y + app.editor.get_cursor_row() + 1,
+                chunks[2].y + app.editor.get_cursor_row() + 1,
             )
         }
-    }
+    };
+}
 
+fn draw_query_results<'a>(app: &'a mut App) -> Paragraph<'a> {
+    let query_results = match &app.query_results {
+        Some(results) => {
+            let query = app.editor.history.last().unwrap();
+            if query.starts_with("CREATE") {
+                Paragraph::new(String::from("Table created"))
+            } else {
+                let table = pretty_format_batches(&results.batches).unwrap().to_string();
+                Paragraph::new(table)
+            }
+        }
+        None => {
+            let last_query = app.editor.history.last();
+            match last_query {
+                Some(query) => Paragraph::new(query.as_str()),
+                None => Paragraph::new("No queries yet"),
+            }
+        }
+    };
+    query_results.block(
+        Block::default()
+            .borders(Borders::TOP)
+            .title("Query Results"),
+    )
+}
+
+fn draw_tabs<'a>(app: &mut App) -> Tabs<'a> {
+    let titles = app
+        .tabs
+        .titles
+        .iter()
+        .map(|t| Spans::from(vec![Span::styled(*t, Style::default())]))
+        .collect();
+
+    Tabs::new(titles)
+        .block(Block::default().borders(Borders::ALL).title("Tabs"))
+        .select(app.tabs.index)
+        .style(Style::default())
+        .highlight_style(Style::default().add_modifier(Modifier::BOLD))
+}
+
+fn draw_query_history<'a>(app: &mut App) -> List<'a> {
     let messages: Vec<ListItem> = app
-        .sql_history
+        .editor
+        .history
         .iter()
         .enumerate()
         .map(|(i, m)| {
@@ -101,22 +231,25 @@ pub fn generate_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             ListItem::new(content)
         })
         .collect();
-    let messages =
-        List::new(messages).block(Block::default().borders(Borders::ALL).title("Query Output"));
-    if let Some(res) = &app.query_results {
-        let query = app.sql_history.last().unwrap();
-        if query.starts_with("CREATE") {
-            f.render_widget(messages, chunks[2]);
-        } else {
-            let table = pretty_format_batches(&res.batches).unwrap().to_string();
-            let p = Paragraph::new(table).block(
-                Block::default()
-                    .borders(Borders::TOP)
-                    .title("Query Results"),
-            );
-            f.render_widget(p, chunks[2]);
-        }
-    } else {
-        f.render_widget(messages, chunks[2]);
-    }
+
+    List::new(messages).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Query History"),
+    )
+}
+
+fn draw_logs<'a>() -> TuiLoggerWidget<'a> {
+    TuiLoggerWidget::default()
+        .style_error(Style::default().fg(Color::Red))
+        .style_debug(Style::default().fg(Color::Green))
+        .style_warn(Style::default().fg(Color::Yellow))
+        .style_trace(Style::default().fg(Color::Gray))
+        .style_info(Style::default().fg(Color::Blue))
+        .block(
+            Block::default()
+                .title("Logs")
+                .border_style(Style::default())
+                .borders(Borders::ALL),
+        )
 }

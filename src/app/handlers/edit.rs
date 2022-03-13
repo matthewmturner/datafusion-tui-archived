@@ -52,7 +52,7 @@ async fn enter_handler(app: &mut App) {
         }
         true => {
             let sql: String = app.editor.input.combine_lines();
-            app.sql_history.push(sql.clone());
+            app.editor.history.push(sql.clone());
             app.editor.input.clear();
             app.editor.sql_terminated = false;
             // TODO: Remove unwrap and add result / action
@@ -65,7 +65,7 @@ async fn enter_handler(app: &mut App) {
                 }
                 Err(e) => {
                     let err_msg = format!("{}", e);
-                    app.sql_history.push(err_msg)
+                    app.editor.history.push(err_msg)
                 }
             }
         }
