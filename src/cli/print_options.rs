@@ -25,7 +25,8 @@ pub struct PrintOptions {
     pub format: PrintFormat,
     pub quiet: bool,
 }
-
+// TODO: Is this needed
+// TODO: Remove and place in title for query results
 fn print_timing_info(row_count: usize, now: Instant) {
     println!(
         "{} {} in set. Query took {:.3} seconds.",

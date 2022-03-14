@@ -27,10 +27,12 @@ use std::io::{BufRead, BufReader};
 use std::sync::Arc;
 use std::time::Instant;
 
+use crate::app::ui::Scroll;
 use crate::cli::print_options::PrintOptions;
 
 pub struct QueryResults {
     pub batches: Vec<RecordBatch>,
+    pub scroll: Scroll,
 }
 
 /// The CLI supports using a local DataFusion context or a distributed BallistaContext

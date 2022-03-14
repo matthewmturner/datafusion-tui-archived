@@ -18,6 +18,7 @@
 use std::io;
 
 use crate::app::datafusion::context::QueryResults;
+use crate::app::ui::Scroll;
 use crate::app::{App, AppReturn, InputMode};
 use crate::events::Key;
 
@@ -53,7 +54,6 @@ async fn enter_handler(app: &mut App) {
         true => {
             let sql: String = app.editor.input.combine_lines();
             app.editor.history.push(sql.clone());
-            app.editor.input.clear();
             app.editor.sql_terminated = false;
 
             let df = app.context.sql(&sql).await;
@@ -62,6 +62,7 @@ async fn enter_handler(app: &mut App) {
                     app.query_results = Some(QueryResults {
                         // TODO: Remove unwrap and add result / action
                         batches: df.collect().await.unwrap(),
+                        scroll: Scroll { x: 0, y: 0 },
                     });
                 }
                 Err(e) => {

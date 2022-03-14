@@ -16,6 +16,7 @@
 // under the License.
 
 use arrow::util::pretty::pretty_format_batches;
+use log::debug;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
@@ -28,7 +29,15 @@ use tui_logger::TuiLoggerWidget;
 
 use crate::app::{App, InputMode};
 
+// TODO: Add Config / Context tab
+
+pub struct Scroll {
+    pub x: u16,
+    pub y: u16,
+}
+
 pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    // TODO: Draw function per tab
     match app.tabs.index {
         // SQL Editor
         0 => {
@@ -39,7 +48,7 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                     [
                         Constraint::Length(1),
                         Constraint::Length(3),
-                        Constraint::Length(30),
+                        Constraint::Length(20),
                         Constraint::Min(1),
                     ]
                     .as_ref(),
@@ -56,6 +65,10 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             draw_cursor(app, f, &chunks);
             let query_results = draw_query_results(app);
             f.render_widget(query_results, chunks[3]);
+            debug!(
+                "Query Results x, y: {:?}, {:?}",
+                chunks[3].width, chunks[3].height
+            );
         }
         // Query History
         1 => {
@@ -133,7 +146,9 @@ fn draw_help<'a>(app: &mut App) -> Paragraph<'a> {
                 Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(" to exit, "),
                 Span::styled("e", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(" to start editing."),
+                Span::raw(" to start editing, "),
+                Span::styled("c", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(" to clear the editor."),
             ],
             Style::default().add_modifier(Modifier::RAPID_BLINK),
         ),
@@ -188,7 +203,7 @@ fn draw_query_results<'a>(app: &'a mut App) -> Paragraph<'a> {
                 Paragraph::new(String::from("Table created"))
             } else {
                 let table = pretty_format_batches(&results.batches).unwrap().to_string();
-                Paragraph::new(table)
+                Paragraph::new(table).scroll((results.scroll.x, results.scroll.y))
             }
         }
         None => {

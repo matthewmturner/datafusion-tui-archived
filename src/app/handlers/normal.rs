@@ -28,6 +28,11 @@ pub enum NormalModeAction {
 pub fn normal_mode_handler(app: &mut App, key: Key) -> io::Result<AppReturn> {
     // TODO: Use arrow keys to scroll up and down QueryResults
     let result = match key {
+        Key::Char('c') => {
+            app.editor.input.clear();
+            app.input_mode = InputMode::Editing;
+            Ok(AppReturn::Continue)
+        }
         Key::Char('e') => {
             app.input_mode = InputMode::Editing;
             Ok(AppReturn::Continue)
@@ -44,6 +49,46 @@ pub fn normal_mode_handler(app: &mut App, key: Key) -> io::Result<AppReturn> {
             } else {
                 Ok(AppReturn::Continue)
             }
+        }
+        Key::Down => {
+            match app.query_results {
+                Some(ref mut results) => results.scroll.x += 1,
+                None => {}
+            };
+            Ok(AppReturn::Continue)
+        }
+        Key::Up => {
+            match app.query_results {
+                Some(ref mut results) => {
+                    let new_x = match results.scroll.x {
+                        0 => 0,
+                        n => n - 1,
+                    };
+                    results.scroll.x = new_x
+                }
+                None => {}
+            };
+            Ok(AppReturn::Continue)
+        }
+        Key::Right => {
+            match app.query_results {
+                Some(ref mut results) => results.scroll.y += 3,
+                None => {}
+            };
+            Ok(AppReturn::Continue)
+        }
+        Key::Left => {
+            match app.query_results {
+                Some(ref mut results) => {
+                    let new_y = match results.scroll.y {
+                        0 | 1 | 2 => 0,
+                        n => n - 3,
+                    };
+                    results.scroll.y = new_y
+                }
+                None => {}
+            };
+            Ok(AppReturn::Continue)
         }
         _ => Ok(AppReturn::Continue),
     };

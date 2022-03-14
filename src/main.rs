@@ -16,7 +16,7 @@
 // under the License.
 
 // Tabs: Context, Catalog, Logs, Sql Editors, Query History
-
+// TODO: Write results to file command
 use std::error::Error;
 
 use clap::Parser;
