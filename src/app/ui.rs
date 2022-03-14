@@ -40,7 +40,8 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     match app.tabs.index {
         0 => draw_sql_eqitor_tab(f, app),
         1 => draw_query_history_tab(f, app),
-        2 => draw_logs_tab(f, app),
+        2 => draw_context_tab(f, app),
+        3 => draw_logs_tab(f, app),
         _ => draw_default_tab(f, app),
     }
 }
@@ -95,8 +96,30 @@ fn draw_query_history_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     let tabs = draw_tabs(app);
     f.render_widget(tabs, chunks[1]);
+    // TODO: Cleanup formatting for query history, focus on how new lines are handled
     let query_history = draw_query_history(app);
     f.render_widget(query_history, chunks[2])
+}
+
+fn draw_context_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(2)
+        .constraints(
+            [
+                Constraint::Length(1),
+                Constraint::Length(3),
+                Constraint::Min(1),
+            ]
+            .as_ref(),
+        )
+        .split(f.size());
+
+    let help_message = draw_help(app);
+    f.render_widget(help_message, chunks[0]);
+
+    let tabs = draw_tabs(app);
+    f.render_widget(tabs, chunks[1]);
 }
 
 fn draw_logs_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
@@ -200,7 +223,6 @@ fn draw_cursor<B: Backend>(app: &mut App, f: &mut Frame<B>, chunks: &Vec<Rect>) 
 }
 
 fn draw_query_results<'a>(app: &'a mut App) -> Paragraph<'a> {
-    // TODO: Include query execution time in title
     let (query_results, duration) = match &app.query_results {
         Some(query_results) => {
             let query = app.editor.history.last().unwrap();

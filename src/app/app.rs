@@ -32,7 +32,12 @@ pub struct Tabs {
 impl Tabs {
     fn new() -> Self {
         Tabs {
-            titles: vec!["SQL Editor [0]", "Query History [1]", "Logs [2]"],
+            titles: vec![
+                "SQL Editor [0]",
+                "Query History [1]",
+                "Context [2]",
+                "Logs [3]",
+            ],
             index: 0,
         }
     }

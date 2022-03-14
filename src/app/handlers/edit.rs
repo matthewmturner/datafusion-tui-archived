@@ -24,6 +24,7 @@ use crate::app::{App, AppReturn, InputMode};
 use crate::events::Key;
 
 pub async fn edit_mode_handler(app: &mut App, key: Key) -> io::Result<AppReturn> {
+    // TODO: Move cursor with arrow keys
     match key {
         Key::Enter => enter_handler(app).await,
         Key::Char(c) => match c {
