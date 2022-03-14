@@ -186,7 +186,7 @@ fn draw_help<'a>(app: &mut App) -> Paragraph<'a> {
                 Span::styled("Esc", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(" to stop editing, "),
                 Span::styled("Enter", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(" to record the message"),
+                Span::raw(" to execute query after closing ';'"),
             ],
             Style::default(),
         ),
