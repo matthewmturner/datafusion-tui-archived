@@ -22,7 +22,6 @@ use crate::app::datafusion::context::{Context, QueryResults};
 use crate::app::editor::Editor;
 use crate::app::handlers::key_event_handler;
 use crate::cli::args::Args;
-use crate::cli::print_options::PrintOptions;
 use crate::events::Key;
 
 pub struct Tabs {
@@ -72,11 +71,6 @@ impl App {
             _ => Context::new_local(&execution_config),
         };
 
-        let print_options = PrintOptions {
-            format: args.format,
-            quiet: args.quiet,
-        };
-
         let files = args.file;
         let rc = match args.rc {
             Some(file) => file,
@@ -94,10 +88,10 @@ impl App {
         };
 
         if !files.is_empty() {
-            ctx.exec_files(files, &print_options).await
+            ctx.exec_files(files).await
         } else {
             if !rc.is_empty() {
-                ctx.exec_files(rc, &print_options).await
+                ctx.exec_files(rc).await
             }
         }
 

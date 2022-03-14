@@ -201,29 +201,32 @@ fn draw_cursor<B: Backend>(app: &mut App, f: &mut Frame<B>, chunks: &Vec<Rect>) 
 
 fn draw_query_results<'a>(app: &'a mut App) -> Paragraph<'a> {
     // TODO: Include query execution time in title
-    let query_results = match &app.query_results {
-        Some(results) => {
+    let (query_results, duration) = match &app.query_results {
+        Some(query_results) => {
             let query = app.editor.history.last().unwrap();
-            if query.starts_with("CREATE") {
+            let results = if query.starts_with("CREATE") {
                 Paragraph::new(String::from("Table created"))
             } else {
-                let table = pretty_format_batches(&results.batches).unwrap().to_string();
-                Paragraph::new(table).scroll((results.scroll.x, results.scroll.y))
-            }
+                let table = pretty_format_batches(&query_results.batches)
+                    .unwrap()
+                    .to_string();
+                Paragraph::new(table).scroll((query_results.scroll.x, query_results.scroll.y))
+            };
+            let query_duration_info = query_results.format_timing_info();
+            (results, query_duration_info)
         }
         None => {
             let last_query = app.editor.history.last();
-            match last_query {
+            let no_queries_text = match last_query {
                 Some(query) => Paragraph::new(query.as_str()),
                 None => Paragraph::new("No queries yet"),
-            }
+            };
+            (no_queries_text, String::new())
         }
     };
-    query_results.block(
-        Block::default()
-            .borders(Borders::TOP)
-            .title("Query Results"),
-    )
+
+    let title = format!("Query Results {}", duration);
+    query_results.block(Block::default().borders(Borders::TOP).title(title))
 }
 
 fn draw_tabs<'a>(app: &mut App) -> Tabs<'a> {

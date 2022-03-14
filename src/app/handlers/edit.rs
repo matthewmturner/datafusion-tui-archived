@@ -16,6 +16,7 @@
 // under the License.
 
 use std::io;
+use std::time::Instant;
 
 use crate::app::datafusion::context::QueryResults;
 use crate::app::ui::Scroll;
@@ -56,12 +57,18 @@ async fn enter_handler(app: &mut App) {
             app.editor.history.push(sql.clone());
             app.editor.sql_terminated = false;
 
+            let now = Instant::now();
             let df = app.context.sql(&sql).await;
             match df {
                 Ok(df) => {
+                    let batches = df.collect().await.unwrap();
+                    let query_duration = now.elapsed().as_secs_f64();
+                    let rows: usize = batches.iter().map(|b| b.num_rows()).sum();
                     app.query_results = Some(QueryResults {
                         // TODO: Remove unwrap and add result / action
-                        batches: df.collect().await.unwrap(),
+                        batches,
+                        rows,
+                        query_duration,
                         scroll: Scroll { x: 0, y: 0 },
                     });
                 }

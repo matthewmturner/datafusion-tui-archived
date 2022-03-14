@@ -17,4 +17,3 @@
 
 pub mod args;
 pub mod print_format;
-pub mod print_options;

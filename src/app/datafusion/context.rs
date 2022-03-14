@@ -25,14 +25,25 @@ use log::{debug, info};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::sync::Arc;
-use std::time::Instant;
 
 use crate::app::ui::Scroll;
-use crate::cli::print_options::PrintOptions;
 
 pub struct QueryResults {
     pub batches: Vec<RecordBatch>,
+    pub rows: usize,
     pub scroll: Scroll,
+    pub query_duration: f64,
+}
+
+impl QueryResults {
+    pub fn format_timing_info(&self) -> String {
+        format!(
+            "[ {} {} in set. Query took {:.3} seconds ] ",
+            self.rows,
+            if self.rows == 1 { "row" } else { "rows" },
+            self.query_duration
+        )
+    }
 }
 
 /// The CLI supports using a local DataFusion context or a distributed BallistaContext
@@ -65,23 +76,19 @@ impl Context {
         }
     }
 
-    pub async fn exec_files(&mut self, files: Vec<String>, print_options: &PrintOptions) {
+    pub async fn exec_files(&mut self, files: Vec<String>) {
         let files = files
             .into_iter()
             .map(|file_path| File::open(file_path).unwrap())
             .collect::<Vec<_>>();
         for file in files {
             let mut reader = BufReader::new(file);
-            exec_from_lines(self, &mut reader, print_options).await;
+            exec_from_lines(self, &mut reader).await;
         }
     }
 }
 
-async fn exec_from_lines(
-    ctx: &mut Context,
-    reader: &mut BufReader<File>,
-    print_options: &PrintOptions,
-) {
+async fn exec_from_lines(ctx: &mut Context, reader: &mut BufReader<File>) {
     let mut query = "".to_owned();
 
     for line in reader.lines() {
@@ -93,7 +100,7 @@ async fn exec_from_lines(
                 let line = line.trim_end();
                 query.push_str(line);
                 if line.ends_with(';') {
-                    match exec_and_print(ctx, print_options, query).await {
+                    match exec_and_print(ctx, query).await {
                         Ok(_) => {}
                         Err(err) => println!("{:?}", err),
                     }
@@ -110,22 +117,17 @@ async fn exec_from_lines(
 
     // run the left over query if the last statement doesn't contain ‘;’
     if !query.is_empty() {
-        match exec_and_print(ctx, print_options, query).await {
+        match exec_and_print(ctx, query).await {
             Ok(_) => {}
             Err(err) => println!("{:?}", err),
         }
     }
 }
 
-async fn exec_and_print(
-    ctx: &mut Context,
-    print_options: &PrintOptions,
-    sql: String,
-) -> Result<()> {
-    let now = Instant::now();
+async fn exec_and_print(ctx: &mut Context, sql: String) -> Result<()> {
     let df = ctx.sql(&sql).await?;
-    let results = df.collect().await?;
-    print_options.print_batches(&results, now)?;
+    // TODO: Is collecting recording batches even needed?
+    let _results = df.collect().await?;
 
     Ok(())
 }
