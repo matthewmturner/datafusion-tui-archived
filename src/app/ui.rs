@@ -37,105 +37,110 @@ pub struct Scroll {
 }
 
 pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    // TODO: Draw function per tab
     match app.tabs.index {
-        // SQL Editor
-        0 => {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(2)
-                .constraints(
-                    [
-                        Constraint::Length(1),
-                        Constraint::Length(3),
-                        Constraint::Length(20),
-                        Constraint::Min(1),
-                    ]
-                    .as_ref(),
-                )
-                .split(f.size());
-
-            let help_message = draw_help(app);
-            f.render_widget(help_message, chunks[0]);
-
-            let tabs = draw_tabs(app);
-            f.render_widget(tabs, chunks[1]);
-            let editor = draw_editor(app);
-            f.render_widget(editor, chunks[2]);
-            draw_cursor(app, f, &chunks);
-            let query_results = draw_query_results(app);
-            f.render_widget(query_results, chunks[3]);
-            debug!(
-                "Query Results x, y: {:?}, {:?}",
-                chunks[3].width, chunks[3].height
-            );
-        }
-        // Query History
-        1 => {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(2)
-                .constraints(
-                    [
-                        Constraint::Length(1),
-                        Constraint::Length(3),
-                        Constraint::Min(1),
-                    ]
-                    .as_ref(),
-                )
-                .split(f.size());
-
-            let help_message = draw_help(app);
-            f.render_widget(help_message, chunks[0]);
-
-            let tabs = draw_tabs(app);
-            f.render_widget(tabs, chunks[1]);
-            let query_history = draw_query_history(app);
-            f.render_widget(query_history, chunks[2])
-        }
-        2 => {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(2)
-                .constraints(
-                    [
-                        Constraint::Length(1),
-                        Constraint::Length(3),
-                        Constraint::Min(1),
-                    ]
-                    .as_ref(),
-                )
-                .split(f.size());
-
-            let help_message = draw_help(app);
-            f.render_widget(help_message, chunks[0]);
-
-            let tabs = draw_tabs(app);
-            f.render_widget(tabs, chunks[1]);
-            let logs = draw_logs();
-            f.render_widget(logs, chunks[2])
-        }
-        _ => {
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .margin(2)
-                .constraints(
-                    [
-                        Constraint::Length(1),
-                        Constraint::Length(3),
-                        Constraint::Min(1),
-                    ]
-                    .as_ref(),
-                )
-                .split(f.size());
-
-            let help_message = draw_help(app);
-            f.render_widget(help_message, chunks[0]);
-
-            let tabs = draw_tabs(app);
-            f.render_widget(tabs, chunks[1]);
-        }
+        0 => draw_sql_eqitor_tab(f, app),
+        1 => draw_query_history_tab(f, app),
+        2 => draw_logs_tab(f, app),
+        _ => draw_default_tab(f, app),
     }
+}
+
+fn draw_sql_eqitor_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(2)
+        .constraints(
+            [
+                Constraint::Length(1),
+                Constraint::Length(3),
+                Constraint::Length(20),
+                Constraint::Min(1),
+            ]
+            .as_ref(),
+        )
+        .split(f.size());
+
+    let help_message = draw_help(app);
+    f.render_widget(help_message, chunks[0]);
+
+    let tabs = draw_tabs(app);
+    f.render_widget(tabs, chunks[1]);
+    let editor = draw_editor(app);
+    f.render_widget(editor, chunks[2]);
+    draw_cursor(app, f, &chunks);
+    let query_results = draw_query_results(app);
+    f.render_widget(query_results, chunks[3]);
+    debug!(
+        "Query Results x, y: {:?}, {:?}",
+        chunks[3].width, chunks[3].height
+    );
+}
+
+fn draw_query_history_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(2)
+        .constraints(
+            [
+                Constraint::Length(1),
+                Constraint::Length(3),
+                Constraint::Min(1),
+            ]
+            .as_ref(),
+        )
+        .split(f.size());
+
+    let help_message = draw_help(app);
+    f.render_widget(help_message, chunks[0]);
+
+    let tabs = draw_tabs(app);
+    f.render_widget(tabs, chunks[1]);
+    let query_history = draw_query_history(app);
+    f.render_widget(query_history, chunks[2])
+}
+
+fn draw_logs_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(2)
+        .constraints(
+            [
+                Constraint::Length(1),
+                Constraint::Length(3),
+                Constraint::Min(1),
+            ]
+            .as_ref(),
+        )
+        .split(f.size());
+
+    let help_message = draw_help(app);
+    f.render_widget(help_message, chunks[0]);
+
+    let tabs = draw_tabs(app);
+    f.render_widget(tabs, chunks[1]);
+    let logs = draw_logs();
+    f.render_widget(logs, chunks[2])
+}
+
+fn draw_default_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(2)
+        .constraints(
+            [
+                Constraint::Length(1),
+                Constraint::Length(3),
+                Constraint::Min(1),
+            ]
+            .as_ref(),
+        )
+        .split(f.size());
+
+    let help_message = draw_help(app);
+    f.render_widget(help_message, chunks[0]);
+
+    let tabs = draw_tabs(app);
+    f.render_widget(tabs, chunks[1]);
 }
 
 fn draw_help<'a>(app: &mut App) -> Paragraph<'a> {
