@@ -8,6 +8,7 @@ DataFusion-tui provides a feature rich terminal application for using DataFusion
     - Text editor for writing SQL queries
     - Scrollable query results
     - Write query results to file (TODO)
+    - Multiple SQL Editor tabs (TODO)
   - Query History
     - Full history of all executed queries
   - Context (TODO)

@@ -223,6 +223,7 @@ fn draw_cursor<B: Backend>(app: &mut App, f: &mut Frame<B>, chunks: &Vec<Rect>) 
 }
 
 fn draw_query_results<'a>(app: &'a mut App) -> Paragraph<'a> {
+    // Query results not shown correctly on error. For example `show tables for x`
     let (query_results, duration) = match &app.query_results {
         Some(query_results) => {
             let query = app.editor.history.last().unwrap();
