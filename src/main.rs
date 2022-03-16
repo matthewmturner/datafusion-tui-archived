@@ -16,8 +16,6 @@
 // under the License.
 
 // Tabs: Context, Catalog, Logs, Sql Editors, Query History, Help for commands / functions
-// TODO: Help on commands / functions needs script to parse df repo and extract docs
-// TODO: Write results to file command
 use std::error::Error;
 
 use clap::Parser;

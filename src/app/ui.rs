@@ -29,8 +29,6 @@ use tui_logger::TuiLoggerWidget;
 
 use crate::app::{App, InputMode};
 
-// TODO: Add Config / Context tab
-
 pub struct Scroll {
     pub x: u16,
     pub y: u16,
@@ -96,7 +94,6 @@ fn draw_query_history_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     let tabs = draw_tabs(app);
     f.render_widget(tabs, chunks[1]);
-    // TODO: Cleanup formatting for query history, focus on how new lines are handled
     let query_history = draw_query_history(app);
     f.render_widget(query_history, chunks[2])
 }
@@ -120,6 +117,8 @@ fn draw_context_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     let tabs = draw_tabs(app);
     f.render_widget(tabs, chunks[1]);
+
+    draw_context(f, app, chunks[2]);
 }
 
 fn draw_logs_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
@@ -287,7 +286,6 @@ fn draw_query_history<'a>(app: &mut App) -> List<'a> {
 }
 
 fn draw_logs<'a>() -> TuiLoggerWidget<'a> {
-    // TODO: Figure out how to scroll logs
     TuiLoggerWidget::default()
         .style_error(Style::default().fg(Color::Red))
         .style_debug(Style::default().fg(Color::Green))
@@ -300,4 +298,51 @@ fn draw_logs<'a>() -> TuiLoggerWidget<'a> {
                 .border_style(Style::default())
                 .borders(Borders::ALL),
         )
+}
+
+fn draw_context<'a, B: Backend>(f: &mut Frame<B>, app: &mut App, area: Rect) {
+    let context = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+        .split(area);
+
+    let exec_config = draw_execution_config(app);
+    f.render_widget(exec_config, context[0]);
+
+    let physical_opts = draw_physical_optimizers(app);
+    f.render_widget(physical_opts, context[1]);
+}
+
+fn draw_execution_config(app: &mut App) -> List {
+    let exec_config = app.context.format_execution_config().unwrap();
+    let config: Vec<ListItem> = exec_config
+        .iter()
+        .map(|i| {
+            let content = vec![Spans::from(Span::raw(format!("{}", i)))];
+            ListItem::new(content)
+        })
+        .collect();
+
+    List::new(config).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("ExecutionConfig"),
+    )
+}
+
+fn draw_physical_optimizers(app: &mut App) -> List {
+    let physical_optimizers = app.context.format_physical_optimizers().unwrap();
+    let opts: Vec<ListItem> = physical_optimizers
+        .iter()
+        .map(|i| {
+            let content = vec![Spans::from(Span::raw(format!("{}", i)))];
+            ListItem::new(content)
+        })
+        .collect();
+
+    List::new(opts).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Physical Optimizers"),
+    )
 }

@@ -24,7 +24,6 @@ use crate::app::{App, AppReturn, InputMode};
 use crate::events::Key;
 
 pub async fn edit_mode_handler(app: &mut App, key: Key) -> io::Result<AppReturn> {
-    // TODO: Move cursor with arrow keys
     match key {
         Key::Enter => enter_handler(app).await,
         Key::Char(c) => match c {
@@ -66,7 +65,6 @@ async fn enter_handler(app: &mut App) {
                     let query_duration = now.elapsed().as_secs_f64();
                     let rows: usize = batches.iter().map(|b| b.num_rows()).sum();
                     app.query_results = Some(QueryResults {
-                        // TODO: Remove unwrap and add result / action
                         batches,
                         rows,
                         query_duration,

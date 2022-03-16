@@ -51,7 +51,7 @@ pub enum Context {
     /// In-process execution with DataFusion
     Local(ExecutionContext),
     /// Distributed execution with Ballista (if available)
-    Remote(BallistaContext), // TODO: Setup Ballista
+    Remote(BallistaContext),
 }
 
 impl Context {
@@ -84,6 +84,40 @@ impl Context {
         for file in files {
             let mut reader = BufReader::new(file);
             exec_from_lines(self, &mut reader).await;
+        }
+    }
+
+    pub fn format_execution_config(&self) -> Option<Vec<String>> {
+        match self {
+            Context::Local(ctx) => {
+                let mut config = Vec::new();
+                let cfg = ctx.state.lock().config.clone();
+                debug!("Extracting ExecutionConfig attributes");
+                config.push(format!("Target Partitions: {}", cfg.target_partitions));
+                config.push(format!("Repartition Joins: {}", cfg.repartition_joins));
+                config.push(format!(
+                    "Repartition Aggregations: {}",
+                    cfg.repartition_aggregations
+                ));
+                config.push(format!("Repartition Windows: {}", cfg.repartition_windows));
+                Some(config)
+            }
+            Context::Remote(_) => None,
+        }
+    }
+
+    pub fn format_physical_optimizers(&self) -> Option<Vec<String>> {
+        match self {
+            Context::Local(ctx) => {
+                let physical_opts = ctx.state.lock().config.physical_optimizers.clone();
+                debug!("Extracting Physical Optimizer Rules");
+                let opts = physical_opts
+                    .iter()
+                    .map(|opt| opt.name().to_string())
+                    .collect();
+                Some(opts)
+            }
+            Context::Remote(_) => None,
         }
     }
 }
@@ -126,7 +160,6 @@ async fn exec_from_lines(ctx: &mut Context, reader: &mut BufReader<File>) {
 
 async fn exec_and_print(ctx: &mut Context, sql: String) -> Result<()> {
     let df = ctx.sql(&sql).await?;
-    // TODO: Is collecting recording batches even needed?
     let _results = df.collect().await?;
 
     Ok(())

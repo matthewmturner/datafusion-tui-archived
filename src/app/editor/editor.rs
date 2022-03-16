@@ -97,7 +97,6 @@ impl Input {
     }
 
     pub fn up_row(&mut self) {
-        // println!("Up row");
         if self.cursor_row > 0 {
             self.cursor_row = cmp::max(self.cursor_row - 1, 0);
         }
@@ -105,7 +104,6 @@ impl Input {
     }
 
     pub fn backspace(&mut self) {
-        // TODO: Handle deleting at cursor location
         match self.lines[self.cursor_row as usize]
             .text
             .get_ref()
