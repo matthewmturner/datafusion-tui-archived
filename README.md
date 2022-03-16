@@ -17,8 +17,12 @@ DataFusion-tui provides a feature rich terminal application for using DataFusion
     - Logs from `dft` and `DataFusion`
   - Help (TODO)
     - Documentation on functions / commands
-- Custom ObjectStore Support (TODO)
-  - S3 (TODO)
+- Custom ObjectStore Support
+  - S3
+  - HDFS (todo)
+- Custom Table Providers
+  - Delta Table (TODO)
+  - Big Table  (TODO)
 - Preloading DDL from `~/.datafusionrc`
 
 ![Alt text](media/screenshot.jpeg?raw=true "DataFusion-tui")
