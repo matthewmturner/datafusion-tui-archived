@@ -20,6 +20,8 @@ use std::io;
 
 use unicode_width::UnicodeWidthStr;
 
+use crate::app::datafusion::context::QueryResultsMeta;
+
 /// Single line of text in SQL Editor and cursor over it
 pub struct Line {
     // text: String,
@@ -144,8 +146,8 @@ pub struct Editor {
     pub input: Input,
     /// Flag if SQL statement was terminated with ';'
     pub sql_terminated: bool,
-    /// History of commands entered
-    pub history: Vec<String>,
+    /// History of QueryResultMeta
+    pub history: Vec<QueryResultsMeta>,
 }
 impl Default for Editor {
     fn default() -> Editor {

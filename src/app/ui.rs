@@ -225,8 +225,8 @@ fn draw_query_results<'a>(app: &'a mut App) -> Paragraph<'a> {
     // Query results not shown correctly on error. For example `show tables for x`
     let (query_results, duration) = match &app.query_results {
         Some(query_results) => {
-            let query = app.editor.history.last().unwrap();
-            let results = if query.starts_with("CREATE") {
+            let query_meta = app.editor.history.last().unwrap();
+            let results = if query_meta.query.starts_with("CREATE") {
                 Paragraph::new(String::from("Table created"))
             } else {
                 let table = pretty_format_batches(&query_results.batches)
@@ -240,7 +240,7 @@ fn draw_query_results<'a>(app: &'a mut App) -> Paragraph<'a> {
         None => {
             let last_query = app.editor.history.last();
             let no_queries_text = match last_query {
-                Some(query) => Paragraph::new(query.as_str()),
+                Some(query_meta) => Paragraph::new(query_meta.query.as_str()),
                 None => Paragraph::new("No queries yet"),
             };
             (no_queries_text, String::new())
@@ -273,7 +273,14 @@ fn draw_query_history<'a>(app: &mut App) -> List<'a> {
         .iter()
         .enumerate()
         .map(|(i, m)| {
-            let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
+            let content = vec![
+                Spans::from(Span::raw(format!(
+                    "Query {} [ {} rows took {:.3} seconds ]",
+                    i, m.rows, m.query_duration
+                ))),
+                Spans::from(Span::raw(format!("{}", m.query))),
+                Spans::from(Span::raw(String::new())),
+            ];
             ListItem::new(content)
         })
         .collect();

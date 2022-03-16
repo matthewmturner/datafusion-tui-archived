@@ -18,7 +18,7 @@
 use std::io;
 use std::time::Instant;
 
-use crate::app::datafusion::context::QueryResults;
+use crate::app::datafusion::context::{QueryResults, QueryResultsMeta};
 use crate::app::ui::Scroll;
 use crate::app::{App, AppReturn, InputMode};
 use crate::events::Key;
@@ -54,7 +54,6 @@ async fn enter_handler(app: &mut App) {
         }
         true => {
             let sql: String = app.editor.input.combine_lines();
-            app.editor.history.push(sql.clone());
             app.editor.sql_terminated = false;
 
             let now = Instant::now();
@@ -64,16 +63,30 @@ async fn enter_handler(app: &mut App) {
                     let batches = df.collect().await.unwrap();
                     let query_duration = now.elapsed().as_secs_f64();
                     let rows: usize = batches.iter().map(|b| b.num_rows()).sum();
-                    app.query_results = Some(QueryResults {
-                        batches,
+                    let query_meta = QueryResultsMeta {
+                        query: sql,
+                        succeeded: true,
+                        error: None,
                         rows,
                         query_duration,
+                    };
+                    app.editor.history.push(query_meta.clone());
+                    app.query_results = Some(QueryResults {
+                        batches,
+                        meta: query_meta,
                         scroll: Scroll { x: 0, y: 0 },
                     });
                 }
                 Err(e) => {
                     let err_msg = format!("{}", e);
-                    app.editor.history.push(err_msg)
+                    let query_meta = QueryResultsMeta {
+                        query: sql,
+                        succeeded: false,
+                        error: Some(err_msg),
+                        rows: 0,
+                        query_duration: 0.0,
+                    };
+                    app.editor.history.push(query_meta)
                 }
             }
         }

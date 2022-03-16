@@ -28,20 +28,28 @@ use std::sync::Arc;
 
 use crate::app::ui::Scroll;
 
+#[derive(Clone)]
+pub struct QueryResultsMeta {
+    pub query: String,
+    pub succeeded: bool,
+    pub error: Option<String>,
+    pub rows: usize,
+    pub query_duration: f64,
+}
+
 pub struct QueryResults {
     pub batches: Vec<RecordBatch>,
-    pub rows: usize,
+    pub meta: QueryResultsMeta,
     pub scroll: Scroll,
-    pub query_duration: f64,
 }
 
 impl QueryResults {
     pub fn format_timing_info(&self) -> String {
         format!(
             "[ {} {} in set. Query took {:.3} seconds ] ",
-            self.rows,
-            if self.rows == 1 { "row" } else { "rows" },
-            self.query_duration
+            self.meta.rows,
+            if self.meta.rows == 1 { "row" } else { "rows" },
+            self.meta.query_duration
         )
     }
 }
@@ -159,9 +167,7 @@ async fn exec_from_lines(ctx: &mut Context, reader: &mut BufReader<File>) {
 }
 
 async fn exec_and_print(ctx: &mut Context, sql: String) -> Result<()> {
-    let df = ctx.sql(&sql).await?;
-    let _results = df.collect().await?;
-
+    let _df = ctx.sql(&sql).await?;
     Ok(())
 }
 
