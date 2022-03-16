@@ -21,6 +21,7 @@ use arrow::record_batch::RecordBatch;
 use datafusion::dataframe::DataFrame;
 use datafusion::error::{DataFusionError, Result};
 use datafusion::execution::context::{ExecutionConfig, ExecutionContext};
+
 use log::{debug, info};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -70,9 +71,12 @@ impl Context {
     }
 
     /// create a local context using the given config
-    pub fn new_local(config: &ExecutionConfig) -> Context {
+    pub async fn new_local(config: &ExecutionConfig) -> Context {
         debug!("Created ExecutionContext");
-        Context::Local(ExecutionContext::with_config(config.clone()))
+        let ctx = ExecutionContext::with_config(config.clone());
+        #[cfg(feature = "s3")]
+        let ctx = register_s3(ctx).await;
+        Context::Local(ctx)
     }
 
     /// execute an SQL statement against the context
@@ -128,6 +132,14 @@ impl Context {
             Context::Remote(_) => None,
         }
     }
+}
+
+#[cfg(feature = "s3")]
+pub async fn register_s3(ctx: ExecutionContext) -> ExecutionContext {
+    use datafusion_objectstore_s3::object_store::s3::S3FileSystem;
+    ctx.register_object_store("s3", Arc::new(S3FileSystem::default().await));
+    info!("Registered S3 ObjectStore");
+    ctx
 }
 
 async fn exec_from_lines(ctx: &mut Context, reader: &mut BufReader<File>) {

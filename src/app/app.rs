@@ -73,7 +73,7 @@ impl App {
         let execution_config = ExecutionConfig::new().with_information_schema(true);
         let mut ctx: Context = match (args.host, args.port) {
             (Some(ref h), Some(p)) => Context::new_remote(h, p).unwrap(),
-            _ => Context::new_local(&execution_config),
+            _ => Context::new_local(&execution_config).await,
         };
 
         let files = args.file;
