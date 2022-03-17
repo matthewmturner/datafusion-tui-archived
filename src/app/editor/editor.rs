@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+use log::debug;
 use std::cmp;
 use std::io;
 
@@ -99,10 +100,37 @@ impl Input {
     }
 
     pub fn up_row(&mut self) {
+        debug!("Up Row: r{} c{}", self.cursor_row, self.cursor_column);
         if self.cursor_row > 0 {
             self.cursor_row = cmp::max(self.cursor_row - 1, 0);
         }
         self.cursor_column = self.lines[self.cursor_row as usize].text.get_ref().width() as u16
+    }
+
+    pub fn down_row(&mut self) {
+        debug!("Down Row: r{} c{}", self.cursor_row, self.cursor_column);
+        let previous_col = self.cursor_column;
+        if self.cursor_row < self.lines.len() as u16 {
+            self.cursor_row -= 1;
+            let new_row_width = self.lines[self.cursor_row as usize].text.get_ref().width() as u16;
+            let new_col = cmp::min(previous_col, new_row_width);
+            self.cursor_column = new_col;
+        }
+    }
+
+    pub fn next_char(&mut self) {
+        debug!("Next Char: r{} c{}", self.cursor_row, self.cursor_column);
+        self.cursor_column += 1
+    }
+
+    pub fn previous_char(&mut self) {
+        debug!(
+            "Previous Char: r{} c{}",
+            self.cursor_row, self.cursor_column
+        );
+        if self.cursor_column > 0 {
+            self.cursor_column -= 1
+        }
     }
 
     pub fn backspace(&mut self) {

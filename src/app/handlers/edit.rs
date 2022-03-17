@@ -35,6 +35,10 @@ pub async fn edit_mode_handler(app: &mut App, key: Key) -> io::Result<AppReturn>
                 app.editor.input.append_char(c);
             }
         },
+        Key::Left => app.editor.input.previous_char(),
+        Key::Right => app.editor.input.next_char(),
+        Key::Up => app.editor.input.up_row(),
+        Key::Down => app.editor.input.down_row(),
         Key::Tab => app.editor.input.tab(),
         Key::Backspace => {
             app.editor.input.backspace();
