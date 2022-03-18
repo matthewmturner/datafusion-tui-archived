@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+use log::debug;
 use std::io;
 use std::time::Instant;
 
@@ -24,6 +25,10 @@ use crate::app::{App, AppReturn, InputMode};
 use crate::events::Key;
 
 pub async fn edit_mode_handler(app: &mut App, key: Key) -> io::Result<AppReturn> {
+    debug!(
+        "{} Entered, current row / col: {} / {}",
+        key, app.editor.input.cursor_row, app.editor.input.cursor_column
+    );
     match key {
         Key::Enter => enter_handler(app).await,
         Key::Char(c) => match c {
