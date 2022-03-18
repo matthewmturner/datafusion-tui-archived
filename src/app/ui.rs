@@ -16,7 +16,6 @@
 // under the License.
 
 use arrow::util::pretty::pretty_format_batches;
-use log::debug;
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
@@ -69,10 +68,6 @@ fn draw_sql_eqitor_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     draw_cursor(app, f, &chunks);
     let query_results = draw_query_results(app);
     f.render_widget(query_results, chunks[3]);
-    debug!(
-        "Query Results x, y: {:?}, {:?}",
-        chunks[3].width, chunks[3].height
-    );
 }
 
 fn draw_query_history_tab<B: Backend>(f: &mut Frame<B>, app: &mut App) {

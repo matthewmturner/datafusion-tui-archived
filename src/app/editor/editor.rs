@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+use log::debug;
 use std::cmp;
 use std::io;
 
@@ -75,10 +76,15 @@ impl Input {
         match c {
             '\n' => {
                 self.lines[self.cursor_row as usize].text.get_mut().push(c);
+                debug!(
+                    "Line after appending char {:?} : {:?}",
+                    c,
+                    self.lines[self.cursor_row as usize].text.get_ref()
+                );
                 let line = Line::default();
                 self.lines.push(line);
                 self.cursor_row += 1;
-                self.cursor_column = 0
+                self.cursor_column = 0;
             }
             '\t' => {
                 self.lines[self.cursor_row as usize]
@@ -92,6 +98,11 @@ impl Input {
                 self.cursor_column += 1;
             }
         }
+        debug!(
+            "Line after appending char '{}': {}",
+            c,
+            self.lines[self.cursor_row as usize].text.get_ref()
+        );
     }
 
     pub fn pop(&mut self) -> Option<char> {
@@ -100,9 +111,41 @@ impl Input {
 
     pub fn up_row(&mut self) {
         if self.cursor_row > 0 {
-            self.cursor_row = cmp::max(self.cursor_row - 1, 0);
+            let previous_col = self.cursor_column;
+            self.cursor_row -= 1;
+            let new_row_width = self.lines[self.cursor_row as usize].text.get_ref().width() as u16;
+            let new_col = cmp::min(previous_col, new_row_width);
+            self.cursor_column = new_col;
         }
-        self.cursor_column = self.lines[self.cursor_row as usize].text.get_ref().width() as u16
+    }
+
+    pub fn down_row(&mut self) {
+        if self.lines.is_empty() {
+            return;
+        } else if self.cursor_row + 1 < self.lines.len() as u16 {
+            let previous_col = self.cursor_column;
+            let new_row_width = self.lines[self.cursor_row as usize].text.get_ref().width() as u16;
+            self.cursor_row += 1;
+            let new_col = cmp::min(previous_col, new_row_width);
+            self.cursor_column = new_col;
+        }
+    }
+
+    pub fn next_char(&mut self) {
+        if self.lines.is_empty()
+            || self.cursor_column
+                == self.lines[self.cursor_row as usize].text.get_ref().width() as u16
+        {
+            return;
+        } else {
+            self.cursor_column += 1
+        }
+    }
+
+    pub fn previous_char(&mut self) {
+        if self.cursor_column > 0 {
+            self.cursor_column -= 1
+        }
     }
 
     pub fn backspace(&mut self) {
@@ -117,13 +160,11 @@ impl Input {
                 self.pop();
             }
             false => {
-                let last = self.lines[self.cursor_row as usize].text.get_mut().pop();
-                match last {
-                    Some('\n') => self.up_row(),
-                    Some('\t') => self.cursor_column -= 4,
-                    Some(_) => self.cursor_column -= 1,
-                    None => {}
-                }
+                self.lines[self.cursor_row as usize]
+                    .text
+                    .get_mut()
+                    .remove((self.cursor_column - 1) as usize);
+                self.cursor_column -= 1
             }
         }
     }
